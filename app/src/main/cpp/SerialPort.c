@@ -68,24 +68,48 @@ static speed_t getBaudrate(jint baudrate)
 	}
 }
 
+static void throwException(JNIEnv *env, const char *name, const char *msg)
+{
+	jclass cls = (*env)->FindClass(env, name);
+	/* if cls is NULL, an exception has already been thrown */
+	if (cls != NULL) {
+		(*env)->ThrowNew(env, cls, msg);
+	}
+
+	/* free the local ref */
+	(*env)->DeleteLocalRef(env, cls);
+}
+
 /*
  * Class:     android_serialport_SerialPort
  * Method:    open
  * Signature: (Ljava/lang/String;II)Ljava/io/FileDescriptor;
  */
 JNIEXPORT jobject JNICALL Java_android_1serialport_1api_SerialPort_open
-  (JNIEnv *env, jclass thiz, jstring path, jint baudrate, jint flags)
+  (JNIEnv *env, jclass thiz, jstring path, jint baudrate, jint flags, jint parity, jint dataBits, jint stopBit)
 {
 	int fd;
 	speed_t speed;
 	jobject mFileDescriptor;
 
+
 	/* Check arguments */
 	{
 		speed = getBaudrate(baudrate);
 		if (speed == -1) {
-			/* TODO: throw an exception */
-			LOGE("Invalid baudrate");
+			throwException(env, "java/lang/IllegalArgumentException", "Invalid baudrate");
+			return NULL;
+		}
+		if (parity <0 || parity>2) {
+			throwException(env, "java/lang/IllegalArgumentException", "Invalid parity");
+			return NULL;
+		}
+		if (dataBits <5 || dataBits>8) {
+			throwException(env, "java/lang/IllegalArgumentException", "Invalid dataBits");
+			return NULL;
+		}
+		if (stopBit <1 || stopBit>2) {
+			throwException(env, "java/lang/IllegalArgumentException", "Invalid stopBit");
 			return NULL;
 		}
 	}
@@ -94,15 +118,11 @@ JNIEXPORT jobject JNICALL Java_android_1serialport_1api_SerialPort_open
 	{
 		jboolean iscopy;
 		const char *path_utf = (*env)->GetStringUTFChars(env, path, &iscopy);
-		LOGD("Opening serial port %s with flags 0x%x", path_utf, O_RDWR | flags);
 		fd = open(path_utf, O_RDWR | flags);
-		LOGD("open() fd = %d", fd);
 		(*env)->ReleaseStringUTFChars(env, path, path_utf);
 		if (fd == -1)
 		{
-			/* Throw an exception */
-			LOGE("Cannot open port");
-			/* TODO: throw an exception */
+			throwException(env, "java/io/IOException", "Cannot open port");
 			return NULL;
 		}
 	}
@@ -110,12 +130,10 @@ JNIEXPORT jobject JNICALL Java_android_1serialport_1api_SerialPort_open
 	/* Configure device */
 	{
 		struct termios cfg;
-		LOGD("Configuring serial port");
 		if (tcgetattr(fd, &cfg))
 		{
-			LOGE("tcgetattr() failed");
 			close(fd);
-			/* TODO: throw an exception */
+			throwException(env, "java/io/IOException", "tcgetattr() failed");
 			return NULL;
 		}
 
@@ -123,13 +141,31 @@ JNIEXPORT jobject JNICALL Java_android_1serialport_1api_SerialPort_open
 		cfsetispeed(&cfg, speed);
 		cfsetospeed(&cfg, speed);
 
-		if (tcsetattr(fd, TCSANOW, &cfg))
-		{
-			LOGE("tcsetattr() failed");
-			close(fd);
-			/* TODO: throw an exception */
-			return NULL;
+		/* More attribute set */
+		switch (parity) {
+			case 0: break;
+			case 1: cfg.c_cflag |= PARENB; break;
+			case 2: cfg.c_cflag &= ~PARODD; break;
 		}
+		switch (dataBits) {
+			case 5: cfg.c_cflag |= CS5; break;
+			case 6: cfg.c_cflag |= CS6; break;
+			case 7: cfg.c_cflag |= CS7; break;
+			case 8: cfg.c_cflag |= CS8; break;
+		}
+		switch (stopBit) {
+			case 1: cfg.c_cflag &= ~CSTOPB; break;
+			case 2: cfg.c_cflag |= CSTOPB; break;
+		}
+		int rc = tcsetattr(fd, TCSANOW, &cfg);
+		/*
+        if (rc)
+        {
+            close(fd);
+            throwException(env, "java/io/IOException", strcat("tcsetattr() failed: ", rc));
+            return NULL;
+        }
+        */
 	}
 
 	/* Create a corresponding file descriptor */

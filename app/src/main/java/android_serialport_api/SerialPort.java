@@ -26,6 +26,8 @@ import java.io.OutputStream;
 
 import android.util.Log;
 
+import static com.example.ori.jnidemo.MainActivity.logMessage;
+
 public class SerialPort {
 
 	private static final String TAG = "SerialPort";
@@ -37,7 +39,7 @@ public class SerialPort {
 	private FileInputStream mFileInputStream;
 	private FileOutputStream mFileOutputStream;
 
-	public SerialPort(File device, int baudrate, int flags) throws SecurityException, IOException {
+	public SerialPort(File device, int baudrate, int flags, int parity, int dataBits, int stopBit) throws SecurityException, IOException {
 
 		/* Check access permission */
 		if (!device.canRead() || !device.canWrite()) {
@@ -50,16 +52,19 @@ public class SerialPort {
 				su.getOutputStream().write(cmd.getBytes());
 				if ((su.waitFor() != 0) || !device.canRead()
 						|| !device.canWrite()) {
+					logMessage(TAG, "串口打开失败!");
 					throw new SecurityException();
 				}
 			} catch (Exception e) {
+				logMessage(TAG, "串口打开失败!");
 				e.printStackTrace();
 				throw new SecurityException();
 			}
 		}
 
-		mFd = open(device.getAbsolutePath(), baudrate, flags);
+		mFd = open(device.getAbsolutePath(), baudrate, flags, parity, dataBits, stopBit);
 		if (mFd == null) {
+			logMessage(TAG, "native open returns null");
 			Log.e(TAG, "native open returns null");
 			throw new IOException();
 		}
@@ -77,7 +82,7 @@ public class SerialPort {
 	}
 
 	// JNI
-	private native static FileDescriptor open(String path, int baudrate, int flags);
+    private native static FileDescriptor open(String path, int baudrate, int flags, int parity, int dataBits, int stopBit);
 	public native void close();
 	static {
 		System.loadLibrary("serial_port");
