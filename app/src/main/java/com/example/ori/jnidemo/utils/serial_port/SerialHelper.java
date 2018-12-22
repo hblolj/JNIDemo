@@ -159,7 +159,7 @@ public class SerialHelper{
 	public void sendHex(Order sendOrder, Order waitReceiverContent, Integer retryCount, Handler myHandler){
 		// 计算等待的指令，加入全局变量
 		SerialHelper.waitReplys.put(waitReceiverContent.getOrderContent(), new OrderValidate(sendOrder, waitReceiverContent, retryCount));
-		EventBus.getDefault().post(new MessageEvent(sendOrder.getOrderContent(), MessageEvent.MESSAGE_TYPE_SEND_VIEW));
+//		EventBus.getDefault().post(new MessageEvent(sendOrder.getOrderContent(), MessageEvent.MESSAGE_TYPE_SEND_VIEW));
 		logMessage(TAG, "sendHex: waitReplys.Size: " + SerialHelper.waitReplys.size());
 		byte[] bOutArray = CommonUtil.toByteArray(sendOrder.getOrderContent());
 		try {

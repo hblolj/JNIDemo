@@ -133,6 +133,13 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
 
     private void initDatas() {
 
+        btnRecycle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // TODO: 2018/12/22 发送开门指令
+            }
+        });
+
         tvClearOrderLog.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
@@ -225,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
                 String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
                 OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
                 logMessage("onDataReceived: waitReplys.Size", SerialHelper.waitReplys.size() + "");
-                EventBus.getDefault().post(new MessageEvent(receiverData, MessageEvent.MESSAGE_TYPE_RECEIVER_VIEW));
+//                EventBus.getDefault().post(new MessageEvent(receiverData, MessageEvent.MESSAGE_TYPE_RECEIVER_VIEW));
             }
         }).start();
     }
@@ -253,6 +260,8 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             String s = r + "\n" + receiverMessage;
             Log.d(TAG, "onMessageEvent: " + receiverMessage);
 //            tvLog.setText(s);
+        }else if (MessageEvent.MESSAGE_TYPE_VIEW_NOTICE.equals(event.getType())){
+            tvNotice.setText(receiverMessage);
         }
 
     }
@@ -302,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
 
     public static void logMessage(String tag, String message){
         Log.d(tag, message);
-        EventBus.getDefault().post(new MessageEvent(tag + ": " + message, MessageEvent.MESSAGE_TYPE_LOG_VIEW));
+//        EventBus.getDefault().post(new MessageEvent(tag + ": " + message, MessageEvent.MESSAGE_TYPE_LOG_VIEW));
     }
 
     private void showNormalDialog(final Integer type){

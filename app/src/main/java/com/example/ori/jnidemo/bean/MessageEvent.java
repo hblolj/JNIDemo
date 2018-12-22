@@ -6,6 +6,7 @@ public class MessageEvent {
     public static final Integer MESSAGE_TYPE_RECEIVER_VIEW = 2;
     public static final Integer MESSAGE_TYPE_SEND_VIEW = 3;
     public static final Integer MESSAGE_TYPE_LOG_VIEW = 4;
+    public static final Integer MESSAGE_TYPE_VIEW_NOTICE = 5;
 
     private String message;
 
