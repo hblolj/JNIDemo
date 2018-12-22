@@ -80,8 +80,8 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
 
             // 1. 判断是否收到响应，如果已经收到响应了，重置重试次数，清除对应数据
             String key = (String) message.obj;
-            logMessage(TAG, "handleMessage: waitOrders.Size: " + SerialHelper.waitOrders.size());
-            OrderValidate orderValidate = SerialHelper.waitOrders.get(key);
+            logMessage(TAG, "handleMessage: waitReplys.Size: " + SerialHelper.waitReplys.size());
+            OrderValidate orderValidate = SerialHelper.waitReplys.get(key);
             if (orderValidate == null){
                 // 已经收到了响应
                 logMessage(TAG, "handleMessage: 收到了响应指令 -> WaitContent: " + key);
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             Integer retryCount = orderValidate.getRetryCount();
             if (retryCount >= ComConstant.MAX_RETRY_COUNT){
                 logMessage(TAG, "handleMessage: 指令发送失败 -> content: " + orderValidate.getSendOrder().getOrderContent());
-                SerialHelper.waitOrders.remove(orderValidate.getWaitReceiverOrder().getOrderContent());
+                SerialHelper.waitReplys.remove(orderValidate.getWaitReceiverOrder().getOrderContent());
                 return false;
             }
 
@@ -210,28 +210,20 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
     }
 
     @Override
-    public void onDataReceived(ComBean comRecData) {
-        String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
-        OrderHandleUtil.handlerReceiveData(receiverData);
-        logMessage("onDataReceived: waitOrders.Size", SerialHelper.waitOrders.size() + "");
-        EventBus.getDefault().post(new MessageEvent(receiverData, MessageEvent.MESSAGE_TYPE_RECEIVER_VIEW));
+    public void onDataReceived(final ComBean comRecData) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "run: receiveTime");
+                String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
+                OrderHandleUtil.handlerReceiveData(receiverData);
+                logMessage("onDataReceived: waitReplys.Size", SerialHelper.waitReplys.size() + "");
+                EventBus.getDefault().post(new MessageEvent(receiverData, MessageEvent.MESSAGE_TYPE_RECEIVER_VIEW));
+            }
+        }).start();
     }
 
-    private void validateOrderType(String receiverData) {
-
-        // 1. 区分指令应答、结果反馈、信号监听
-        // 1.1 指令应答 waitOrder 中存储待等待的应答
-        // 1.2 结果反馈 业务动作 -> 结果反馈 | 地址 + 操作码 ->
-        // 1.3 信号监听
-
-        // 应答
-        // SourceAddress + ActionCode
-
-        // 成功 or 失败
-        // SourceAddress + ActionCode
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
+    @Subscribe(threadMode = ThreadMode.ASYNC)
     public void onMessageEvent(MessageEvent event){
         String receiverMessage = event.getMessage();
         if (MessageEvent.MESSAGE_TYPE_NOTICE.equals(event.getType())){
@@ -241,16 +233,19 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             String r = tvResult.getText().toString();
             receiverMessage = "接收到的消息(" + TimeUtils.date2String(new Date(), TimeUtils.sdf2) + "): " + receiverMessage;
             String s = r + "\n" + receiverMessage;
-            tvResult.setText(s);
+            Log.d(TAG, "onMessageEvent: " + receiverMessage);
+//            tvResult.setText(s);
         }else if (MessageEvent.MESSAGE_TYPE_SEND_VIEW.equals(event.getType())){
             String r = tvResult.getText().toString();
             receiverMessage = "发送的消息(" + TimeUtils.date2String(new Date(), TimeUtils.sdf2) + "): " + receiverMessage;
             String s = r + "\n" + receiverMessage;
-            tvResult.setText(s);
+            Log.d(TAG, "onMessageEvent: " + receiverMessage);
+//            tvResult.setText(s);
         }else if (MessageEvent.MESSAGE_TYPE_LOG_VIEW.equals(event.getType())){
             String r = tvLog.getText().toString();
             String s = r + "\n" + receiverMessage;
-            tvLog.setText(s);
+            Log.d(TAG, "onMessageEvent: " + receiverMessage);
+//            tvLog.setText(s);
         }
 
     }

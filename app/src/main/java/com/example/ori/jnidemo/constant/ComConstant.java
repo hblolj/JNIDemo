@@ -28,22 +28,46 @@ public class ComConstant {
 
     //-------------------------------操作码---------------------------------------
 
-    /**
-     * 开启用户回收门操作码
-     */
+    // 开启用户回收门操作码
     public static final String OPEN_USER_RECYCLE_ACTION_CODE = "B1";
-    /**
-     * 关闭用户回收门操作码
-     */
-    public static final String CLOSE_USER_RECYCLE_ACTION_CODE = "B2";
-    /**
-     * 开启管理员回收门操作码
-     */
-    public static final String OPEN_ADMIN_RECYCLE_ACTION_CODE = "B3";
-    /**
-     * 关闭管理员回收门操作码
-     */
-    public static final String CLOSE_ADMIN_RECYCLE_ACTION_CODE = "B4";
+    // 开启用户回收门结果反馈操作码
+    public static final String OPEN_USER_RECYCLE_RESULT_ACTION_CODE = "B2";
+
+    // 关闭用户回收门操作码
+    public static final String CLOSE_USER_RECYCLE_ACTION_CODE = "B3";
+    // 关闭用户回收门结果反馈操作码
+    public static final String CLOSE_USER_RECYCLE_RESULT_ACTION_CODE = "B4";
+
+    // 开启管理员回收门操作码
+    public static final String OPEN_ADMIN_RECYCLE_ACTION_CODE = "B5";
+    // 开启管理员回收门结果反馈操作码
+    public static final String OPEN_ADMIN_RECYCLE_RESULT_ACTION_CODE = "B6";
+
+    // 关闭管理员回收门操作码
+    public static final String CLOSE_ADMIN_RECYCLE_ACTION_CODE = "B7";
+    // 关闭管理员回收门结果反馈操作码
+    public static final String CLOSE_ADMIN_RECYCLE_RESULT_ACTION_CODE = "B8";
+
+    // 刷新延时关门任务操作码
+    public static final String REFRESH_DOOR_CLOESE_ACTION_CODE = "B9";
+    // 刷新延时关门任务反馈操作码
+    public static final String REFRESH_DOOR_CLOESE_RESULT_ACTION_CODE = "BA";
+
+    // 条码扫描结果校验操作码
+    public static final String BAR_CODE_SCAN_VALIDATE_ACTION_CODE = "BB";
+    // 条码扫描结果校验结果反馈操作码
+    public static final String BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE = "BC";
+
+    // 通信异常通知操作码
+    public static final String COMMUNICATION_EXCEPTION_NOTICE_ACTION_CODE = "BD";
+    // 通信异常通知反馈操作码
+    public static final String COMMUNICATION_EXCEPTION_NOTICE_RESULT_ACTION_CODE = "BE";
+
+    // 物品投递结果通知操作码
+    public static final String RECYCLE_RESULT_NOTICE_ACTION_CODE = "BF";
+    // 物品投递结果通知反馈操作码
+    public static final String RECYCLE_RESULT_NOTICE_RESULT_ACTION_CODE = "C0";
+
     /**
      * 称重指令
      */

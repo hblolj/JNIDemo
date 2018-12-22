@@ -2,6 +2,7 @@ package com.example.ori.jnidemo.utils.serial_port;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import com.example.ori.jnidemo.bean.ComBean;
 import com.example.ori.jnidemo.bean.MessageEvent;
@@ -38,7 +39,7 @@ public class SerialHelper{
 	/**
 	 * 待响应指令
 	 */
-	public static Map<String, OrderValidate> waitOrders = new ConcurrentHashMap<>();
+	public static Map<String, OrderValidate> waitReplys = new ConcurrentHashMap<>();
 	/**
 	 * 等待执行结果的指令
 	 */
@@ -75,7 +76,7 @@ public class SerialHelper{
 
 	private Integer iSendDelay = 100;
 
-	private Integer validateDelay = 1000;
+	private Integer validateDelay = 500;
 
 	private ComDataReceiverInterface receiverInterface;
 
@@ -138,12 +139,13 @@ public class SerialHelper{
 	 * @param bOutArray
 	 */
 	public void send(byte[] bOutArray) throws IOException, InterruptedException {
-		logMessage(TAG, "指令发送时间: " + TimeUtils.date2String(new Date(), TimeUtils.sdf2));
-		if (mOutputStream == null){
-			EventBus.getDefault().post(new MessageEvent("串口尚未连接上!", MessageEvent.MESSAGE_TYPE_NOTICE));
-			return;
-		}
-		mOutputStream.write(bOutArray);
+        logMessage(TAG, "指令发送时间: " + TimeUtils.date2String(new Date(), TimeUtils.sdf2));
+        if (mOutputStream == null){
+            EventBus.getDefault().post(new MessageEvent("串口尚未连接上!", MessageEvent.MESSAGE_TYPE_NOTICE));
+            return;
+        }
+        mOutputStream.write(bOutArray);
+		Log.d(TAG, "run: sendTime");
 		Thread.sleep(iSendDelay);
 	}
 
@@ -156,15 +158,15 @@ public class SerialHelper{
 	 */
 	public void sendHex(Order sendOrder, Order waitReceiverContent, Integer retryCount, Handler myHandler){
 		// 计算等待的指令，加入全局变量
-		SerialHelper.waitOrders.put(waitReceiverContent.getOrderContent(), new OrderValidate(sendOrder, waitReceiverContent, retryCount));
+		SerialHelper.waitReplys.put(waitReceiverContent.getOrderContent(), new OrderValidate(sendOrder, waitReceiverContent, retryCount));
 		EventBus.getDefault().post(new MessageEvent(sendOrder.getOrderContent(), MessageEvent.MESSAGE_TYPE_SEND_VIEW));
-		logMessage(TAG, "sendHex: waitOrders.Size: " + SerialHelper.waitOrders.size());
+		logMessage(TAG, "sendHex: waitReplys.Size: " + SerialHelper.waitReplys.size());
 		byte[] bOutArray = CommonUtil.toByteArray(sendOrder.getOrderContent());
 		try {
 			send(bOutArray);
 		} catch (IOException | InterruptedException e) {
 			// 数据发送异常，移除存储的校验对象
-			SerialHelper.waitOrders.remove(waitReceiverContent);
+			SerialHelper.waitReplys.remove(waitReceiverContent);
 			EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
 			e.printStackTrace();
 		}
@@ -202,6 +204,7 @@ public class SerialHelper{
 					int size = mInputStream.read(buffer);
 					if (size > 0){
 						ComBean ComRecData = new ComBean(sPort,buffer,size);
+						Log.d(TAG, "run: readTime");
 						onDataReceived(ComRecData);
 					}
 					try {

@@ -72,7 +72,7 @@ public class Order {
         }
         String content = prefix + length + sourceAddress + targetAddress + actionCode + param;
         byte[] bytes = CommonUtil.toByteArray(content);
-        this.crc = CRCUtils.getCRC(bytes);
+        this.crc = CRCUtils.getCRC(bytes).toUpperCase();
     }
 
     public String getOrderContent(){
