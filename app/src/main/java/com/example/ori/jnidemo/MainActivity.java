@@ -63,6 +63,10 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
 
     private TextView tvClearOrderLog;
 
+    private TextView tvNotice;
+    private TextView tvTimer;
+    private Button btnRecycle;
+
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
@@ -207,6 +211,9 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
         spActionCode = findViewById(R.id.sp_actionCode);
         tvClearSampleLog = findViewById(R.id.tv_clearSampleLog);
         tvClearOrderLog = findViewById(R.id.tv_clearOrderLog);
+        tvNotice = findViewById(R.id.tv_notice);
+        tvTimer = findViewById(R.id.tv_time);
+        btnRecycle = findViewById(R.id.btn_recycle_plastics_bottle);
     }
 
     @Override
@@ -216,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             public void run() {
                 Log.d(TAG, "run: receiveTime");
                 String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
-                OrderHandleUtil.handlerReceiveData(receiverData);
+                OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
                 logMessage("onDataReceived: waitReplys.Size", SerialHelper.waitReplys.size() + "");
                 EventBus.getDefault().post(new MessageEvent(receiverData, MessageEvent.MESSAGE_TYPE_RECEIVER_VIEW));
             }

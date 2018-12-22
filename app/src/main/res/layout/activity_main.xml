@@ -6,9 +6,10 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity"
     android:gravity="center"
-    android:orientation="vertical">
+    android:orientation="horizontal">
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -50,11 +51,13 @@
     </LinearLayout>
 
     <View
+        android:visibility="gone"
         android:background="@android:color/black"
         android:layout_width="match_parent"
         android:layout_height="1dp"/>
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:orientation="horizontal">
@@ -86,11 +89,13 @@
     </LinearLayout>
 
     <View
+        android:visibility="gone"
         android:background="@android:color/black"
         android:layout_width="match_parent"
         android:layout_height="1dp"/>
 
     <LinearLayout
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -124,5 +129,32 @@
             android:layout_width="0dp"
             android:layout_height="match_parent" />
     </LinearLayout>
+
+    <!-- =========================================================================== -->
+
+    <TextView
+        android:id="@+id/tv_notice"
+        android:text="提示信息"
+        android:gravity="center"
+        android:textSize="30sp"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/btn_recycle_plastics_bottle"
+        android:textSize="30sp"
+        android:text="回收塑料瓶"
+        android:layout_width="200dp"
+        android:layout_height="200dp" />
+
+    <TextView
+        android:id="@+id/tv_time"
+        android:text="倒计时"
+        android:gravity="center"
+        android:textSize="30sp"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"/>
 
 </LinearLayout>
