@@ -85,4 +85,10 @@ public class CommonUtil {
         }
         return remark + perfect;
     }
+
+    public static String hexAdd(String hex, Integer addend){
+        int iHex = Integer.parseInt(hex, 16);
+        int result = iHex + addend;
+        return Integer.toHexString(result).toUpperCase();
+    }
 }

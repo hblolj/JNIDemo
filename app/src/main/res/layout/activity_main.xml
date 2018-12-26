@@ -8,130 +8,6 @@
     android:gravity="center"
     android:orientation="horizontal">
 
-    <LinearLayout
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:gravity="center"
-            android:textSize="20dp"
-            android:text="目标地址: "
-            android:layout_width="100dp"
-            android:layout_height="50dp" />
-
-        <Spinner
-            android:id="@+id/sp_targetAddress"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="80dp"/>
-
-        <TextView
-            android:gravity="center"
-            android:textSize="20dp"
-            android:text="操作: "
-            android:layout_width="100dp"
-            android:layout_height="50dp" />
-
-        <Spinner
-            android:id="@+id/sp_actionCode"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="80dp"/>
-
-        <Button
-            android:id="@+id/btn_send"
-            android:text="发送指令"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="100dp"/>
-    </LinearLayout>
-
-    <View
-        android:visibility="gone"
-        android:background="@android:color/black"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"/>
-
-    <LinearLayout
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tv_clearOrderLog"
-            android:gravity="center"
-            android:textSize="40dp"
-            android:text="收发指令记录(长按清空)"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            />
-
-        <View
-            android:background="@android:color/black"
-            android:layout_width="1dp"
-            android:layout_height="match_parent"/>
-
-        <TextView
-            android:id="@+id/tv_clearSampleLog"
-            android:gravity="center"
-            android:textSize="40dp"
-            android:text="日志输出记录(长按清空)"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            />
-    </LinearLayout>
-
-    <View
-        android:visibility="gone"
-        android:background="@android:color/black"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"/>
-
-    <LinearLayout
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_gravity="center_horizontal"
-            android:scrollbars="vertical"
-            android:id="@+id/tv_result"
-            android:textSize="20dp"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent" />
-
-        <View
-            android:background="@android:color/black"
-            android:layout_width="1dp"
-            android:layout_height="match_parent"/>
-
-
-        <TextView
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_gravity="center_horizontal"
-            android:scrollbars="vertical"
-            android:id="@+id/tv_log"
-            android:textSize="20dp"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent" />
-    </LinearLayout>
-
-    <!-- =========================================================================== -->
-
     <TextView
         android:id="@+id/tv_notice"
         android:text="提示信息"
@@ -141,20 +17,88 @@
         android:layout_height="match_parent"
         android:layout_weight="1"/>
 
-    <Button
-        android:id="@+id/btn_recycle_plastics_bottle"
-        android:textSize="30sp"
-        android:text="回收塑料瓶"
-        android:layout_width="200dp"
-        android:layout_height="200dp" />
-
-    <TextView
-        android:id="@+id/tv_time"
-        android:text="倒计时"
-        android:gravity="center"
-        android:textSize="30sp"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_reconnection"
+            android:text="串口重连"
+            android:background="@drawable/send_code_btn"
+            android:textSize="30sp"
+            android:layout_marginTop="20dp"
+            android:layout_width="200dp"
+            android:layout_height="100dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btn_recycle_plastics_bottle"
+                android:textSize="30sp"
+                android:text="开始投递"
+                android:background="@drawable/send_code_btn"
+                android:layout_width="200dp"
+                android:layout_height="100dp" />
+
+            <Button
+                android:id="@+id/btn_finish_recycle_plastics_bottle"
+                android:visibility="gone"
+                android:layout_marginTop="20dp"
+                android:textSize="30sp"
+                android:text="结束投递"
+                android:background="@drawable/send_code_btn"
+                android:layout_width="200dp"
+                android:layout_height="100dp" />
+
+            <Button
+                android:id="@+id/btn_continue_recycle_plastics_bottle"
+                android:visibility="gone"
+                android:layout_marginTop="20dp"
+                android:textSize="30sp"
+                android:text="继续投递"
+                android:background="@drawable/send_code_btn"
+                android:layout_width="200dp"
+                android:layout_height="100dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_close_door_count_down_time"
+            android:text="延迟关门倒计时"
+            android:gravity="center"
+            android:textSize="30sp"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/black"/>
+
+        <TextView
+            android:id="@+id/tv_fetch_count_down_time"
+            android:text="投递物取回倒计时"
+            android:gravity="center"
+            android:textSize="30sp"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
+
 
 </LinearLayout>

@@ -2,7 +2,6 @@ package com.example.ori.jnidemo.utils.serial_port;
 
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 
 import com.example.ori.jnidemo.bean.ComBean;
 import com.example.ori.jnidemo.bean.MessageEvent;
@@ -10,7 +9,6 @@ import com.example.ori.jnidemo.bean.Order;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.interfaces.ComDataReceiverInterface;
 import com.example.ori.jnidemo.utils.CommonUtil;
-import com.example.ori.jnidemo.utils.TimeUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -19,13 +17,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidParameterException;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android_serialport_api.SerialPort;
-
-import static com.example.ori.jnidemo.MainActivity.logMessage;
 
 
 /**
@@ -37,17 +32,13 @@ public class SerialHelper{
 	public static final String TAG = SerialHelper.class.getSimpleName();
 
 	/**
-	 * 待响应指令
+	 * 待响应指令 key = 待接收的指令
 	 */
 	public static Map<String, OrderValidate> waitReplys = new ConcurrentHashMap<>();
 	/**
-	 * 等待执行结果的指令
+	 * 等待执行结果的指令 key = 待接收的指令的发送地址 + 执行结果操作码
 	 */
-	public static Map<String, OrderValidate> waitResults = new ConcurrentHashMap<>();
-	/**
-	 * 等待的监听信号
-	 */
-	public static Map<String, OrderValidate> waitSignal = new ConcurrentHashMap<>();
+	public static Map<String, Order> waitResults = new ConcurrentHashMap<>();
 
 	private SerialPort mSerialPort;
 
@@ -62,7 +53,8 @@ public class SerialHelper{
 	private SendThread mSendThread;
 
 	// 默认串口地址
-	private String sPort = "/dev/ttyUSB20";
+	private String sPort = "/dev/ttyUSB";
+//	private String sPort = "/dev/ttyUSB20";
 
 	// 默认波特率
 	private Integer iBaudRate = 9600;
@@ -139,13 +131,11 @@ public class SerialHelper{
 	 * @param bOutArray
 	 */
 	public void send(byte[] bOutArray) throws IOException, InterruptedException {
-        logMessage(TAG, "指令发送时间: " + TimeUtils.date2String(new Date(), TimeUtils.sdf2));
         if (mOutputStream == null){
             EventBus.getDefault().post(new MessageEvent("串口尚未连接上!", MessageEvent.MESSAGE_TYPE_NOTICE));
             return;
         }
         mOutputStream.write(bOutArray);
-		Log.d(TAG, "run: sendTime");
 		Thread.sleep(iSendDelay);
 	}
 
@@ -153,14 +143,10 @@ public class SerialHelper{
 	 * 向串口发送字符串数据
 	 * @param sendOrder
 	 * @param waitReceiverContent
-	 * @param retryCount
 	 * @param myHandler
 	 */
-	public void sendHex(Order sendOrder, Order waitReceiverContent, Integer retryCount, Handler myHandler){
+	public void sendHex(Order sendOrder, String waitReceiverContent, Handler myHandler){
 		// 计算等待的指令，加入全局变量
-		SerialHelper.waitReplys.put(waitReceiverContent.getOrderContent(), new OrderValidate(sendOrder, waitReceiverContent, retryCount));
-//		EventBus.getDefault().post(new MessageEvent(sendOrder.getOrderContent(), MessageEvent.MESSAGE_TYPE_SEND_VIEW));
-		logMessage(TAG, "sendHex: waitReplys.Size: " + SerialHelper.waitReplys.size());
 		byte[] bOutArray = CommonUtil.toByteArray(sendOrder.getOrderContent());
 		try {
 			send(bOutArray);
@@ -172,7 +158,7 @@ public class SerialHelper{
 		}
 		// 开启一个延迟任务
 		Message message = new Message();
-		message.obj = waitReceiverContent.getOrderContent();
+		message.obj = waitReceiverContent;
 		myHandler.sendMessageDelayed(message, validateDelay);
 	}
 
@@ -203,8 +189,7 @@ public class SerialHelper{
 					byte[] buffer = new byte[512];
 					int size = mInputStream.read(buffer);
 					if (size > 0){
-						ComBean ComRecData = new ComBean(sPort,buffer,size);
-						Log.d(TAG, "run: readTime");
+						ComBean ComRecData = new ComBean(sPort, buffer, size);
 						onDataReceived(ComRecData);
 					}
 					try {

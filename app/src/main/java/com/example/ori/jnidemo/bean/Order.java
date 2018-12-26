@@ -1,8 +1,12 @@
 package com.example.ori.jnidemo.bean;
 
+import android.os.Handler;
+
 import com.example.ori.jnidemo.utils.CommonUtil;
+import com.example.ori.jnidemo.utils.OrderUtils;
 import com.example.ori.jnidemo.utils.StringUtil;
 import com.example.ori.jnidemo.utils.crc.CRCUtils;
+import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
 
 /**
  * @author: hblolj

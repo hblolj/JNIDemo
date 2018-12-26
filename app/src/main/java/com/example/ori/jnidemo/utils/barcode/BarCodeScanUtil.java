@@ -3,7 +3,11 @@ package com.example.ori.jnidemo.utils.barcode;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.example.ori.jnidemo.utils.StringUtil;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -18,7 +22,9 @@ public class BarCodeScanUtil {
 
     private static Map<Integer, String> barCodeDictionary = new HashMap<>();
 
-    public StringBuffer buffer = new StringBuffer();
+    private StringBuffer buffer = new StringBuffer();
+
+    private List<String> scanResult = new ArrayList<>();
 
     private Boolean mCaps;
 
@@ -66,6 +72,37 @@ public class BarCodeScanUtil {
         barCodeDictionary.put(69, "-");
     }
 
+    public void clearBuffer(){
+        if (buffer != null){
+            buffer.delete(0, BarCodeScanUtil.getInstance().buffer.length());
+        }
+    }
+
+    public void clearData(){
+        clearBuffer();
+        scanResult.clear();
+    }
+
+    public void saveScanResult(){
+        String result = BarCodeScanUtil.getInstance().buffer.toString();
+        Log.d(TAG, "条码扫描结果: " + result);
+        if (StringUtil.isNotEmpty(result)){
+            scanResult.add(result);
+        }
+        clearBuffer();
+    }
+
+    public Boolean validateScanResult(){
+        if (scanResult != null){
+            return scanResult.size() > 0;
+        }
+        return false;
+    }
+
+    public void consumeScanResult(){
+        scanResult.remove(0);
+    }
+
     /**
      * 检查shift键, 判断大小写
      * @param event
@@ -91,18 +128,14 @@ public class BarCodeScanUtil {
 
         if (keycode >= KeyEvent.KEYCODE_A && keycode <= KeyEvent.KEYCODE_Z) {
             if (mCaps) {
-                Log.d(TAG, "keyCodeToNum: " + keycode + "---" + barCodeDictionary.get(keycode).toUpperCase());
                 buffer.append(barCodeDictionary.get(keycode).toUpperCase());
             } else {
-                Log.d(TAG, "keyCodeToNum: " + keycode + "---" + barCodeDictionary.get(keycode));
                 buffer.append(barCodeDictionary.get(keycode));
             }
         } else if ((keycode >= KeyEvent.KEYCODE_0 && keycode <= KeyEvent.KEYCODE_9)) {
-            Log.d(TAG, "keyCodeToNum: " + keycode + "---" + (keycode - KeyEvent.KEYCODE_0));
             buffer.append(keycode - KeyEvent.KEYCODE_0);
         } else {
             //暂不处理特殊符号
-            Log.d(TAG, "keyCodeToNum: " + keycode + "---");
             if (barCodeDictionary.get(keycode) != null){
                 buffer.append(barCodeDictionary.get(keycode));
             }

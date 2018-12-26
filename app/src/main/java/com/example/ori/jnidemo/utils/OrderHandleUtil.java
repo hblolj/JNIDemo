@@ -20,174 +20,271 @@ public class OrderHandleUtil {
 
     private static final String TAG = OrderHandleUtil.class.getSimpleName();
 
+    // 塑料瓶回收 - 开门 - 应答
+    private static final Integer PLASTIC_BOTTLE_RECYCLE_OPEN_DOOR_REPLY = 1;
+    // 塑料瓶回收 - 关门 - 应答
+    private static final Integer PLASTIC_BOTTLE_RECYCLE_CLOSE_DOOR_REPLY = 2;
+    // 塑料瓶回收 - 扫码结果校验 - 应答
+    private static final Integer PLASTIC_BOTTLE_RECYCLE_SCAN_VALIDATE_REPLY = 3;
+    // 塑料瓶回收 - 强制回收 - 应答
+    private static final Integer PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY = 4;
+
     /**
      * 塑料回收门开启结果延时任务
      */
     private static Runnable PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK = null;
-    /**
-     * 塑料回收门延时关闭任务
-     */
-    private static Runnable PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK = null;
 
-    private static final Long PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME = 5000L;
+    private static final Long PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME = 10000L;
+
     /**
-     * 塑料回收们延时关闭时间
+     * 塑料回收门关闭结果延时任务
      */
-    private static final Long PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TIME = 30000L;
+    private static Runnable PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK = null;
+
+    private static final Long PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TIME = 5000L;
 
     public static void handlerReceiveData(String receiveData, Handler myHandler){
+
+        Log.d(TAG, "收到的数据: " + receiveData);
 
         // 1. 判断是否是应答指令 waitOrder 中查询
         OrderValidate replyValidate = SerialHelper.waitReplys.get(receiveData);
         if (replyValidate != null){
             SerialHelper.waitReplys.remove(receiveData);
-            handleReplyOrder(replyValidate, myHandler);
+            handleReplyOrder(replyValidate.getWaitReceiverOrder(), myHandler);
             return;
         }
 
         // 2. 判断是否是执行结果 解析出 SourceAddress + ActionCode -> waitResult 中查询
-        Order order = OrderAnalyzeUtil.analyzeOrder(receiveData);
-        if (order == null){
+        Order receiveOrder = OrderAnalyzeUtil.analyzeOrder(receiveData);
+        if (receiveOrder == null){
             Log.d(TAG, "handlerReceiveData - 指令解析异常: " + receiveData);
             return;
         }
 
-        String key = order.getSourceAddress() + order.getActionCode();
-        if (SerialHelper.waitResults.containsKey(key)){
+        String rKey = receiveOrder.getSourceAddress() + receiveOrder.getActionCode();
+        Order sendOrder = SerialHelper.waitResults.get(rKey);
+        if (sendOrder != null){
             // 执行结果返回
-            // TODO: 2018/12/20 根据具体的场景，做对应的业务处理
-            // TODO: 2018/12/20 收到执行结果，根据业务场景，成功 or 失败 是否开启信号监听延时
-            SerialHelper.waitResults.remove(key);
+            SerialHelper.waitResults.remove(rKey);
+            handleResultOrder(receiveOrder, myHandler);
             return;
         }
 
         // 3. 判断是否是监听信号 解析出 SourceAddress + ActionCode -> waitSignal 中查询
-        if (SerialHelper.waitSignal.containsKey(key)){
-            // 检测信号
-            // TODO: 2018/12/20 根据具体的场景，做对应的业务处理
-            SerialHelper.waitSignal.remove(key);
+        handleSignalOrder(receiveOrder);
+    }
+
+    /**
+     * 未收到应答处理
+     * @param replyOrder
+     * @param myHandler
+     */
+    public static void handleTimeOutReplyOrder(Order replyOrder, Handler myHandler){
+
+        Integer replyOrderType = getReplyOrderType(replyOrder.getSourceAddress(), replyOrder.getActionCode());
+        if (replyOrderType == null){
+            Log.d(TAG, "handleReplyOrder - 未知的应答指令: " + replyOrder.getOrderContent());
             return;
+        }
+
+        if (PLASTIC_BOTTLE_RECYCLE_OPEN_DOOR_REPLY.equals(replyOrderType)){
+            // 塑料瓶回收 - 开门 - 应答未收到
+            String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+            EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_FAILD));
+        }else if (PLASTIC_BOTTLE_RECYCLE_CLOSE_DOOR_REPLY.equals(replyOrderType)){
+            // 塑料瓶回收 - 关门 - 应答未收到
+            String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+            EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
+        }else if (PLASTIC_BOTTLE_RECYCLE_SCAN_VALIDATE_REPLY.equals(replyOrderType)){
+            // 扫码结果 - 应答未收到
+            Log.d(TAG, "扫码结果反馈指令应答未收到!");
+        }else if (PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY.equals(replyOrderType)){
+            // 强制回收指令 - 应答未收到
+            Log.d(TAG, "强制回收指令应答未收到!");
         }
     }
 
     /**
      * 处理指令应答
-     * @param v
+     * @param replyOrder
      */
-    public static void handleReplyOrder(OrderValidate v, Handler myHandler){
+    public static void handleReplyOrder(Order replyOrder, Handler myHandler){
 
-        Order replyOrder = v.getWaitReceiverOrder();
-
-        if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
-                ComConstant.OPEN_USER_RECYCLE_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 1. 塑料瓶回收门 - 开门指令，收到应答后，开启一个延时任务(x 秒内没有收到对应的开门结果，做开门失败处理)
-            if (PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK != null){
-                // 收到开门指令应答时，发现已经存在监听开门结果延时任务
-                // 1. 终止该任务
-                myHandler.removeCallbacks(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK);
-                // 2. 置为 null
-                PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK = null;
-            }
-
-            // 重置延时校验开门结果任务
-            PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK = getPlasticRecycleOpenDoorValidateResultDelayTask();
-            myHandler.postDelayed(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK, PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME);
-        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
-                ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 2. 塑料瓶回收门 - 关门指令，收到应发后，开启一个延时任务(x 秒内没有收到对应的开门结果，做错误处理) -> IC 没发或者发了，没收到
+        Integer replyOrderType = getReplyOrderType(replyOrder.getSourceAddress(), replyOrder.getActionCode());
+        if (replyOrderType == null){
+            Log.d(TAG, "handleReplyOrder - 未知的应答指令: " + replyOrder.getOrderContent());
+            return;
         }
 
+        if (PLASTIC_BOTTLE_RECYCLE_OPEN_DOOR_REPLY.equals(replyOrderType)){
+
+            Log.d(TAG, "收到开门响应指令");
+            // 塑料瓶回收开门指令应答, 收到开门指令应答时，如果已经存在监听开门结果延时任务, 终止该任务
+            resetTask(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK, myHandler);
+
+            // 重置延时校验开门结果任务(x 秒内没有收到对应的开门结果，做开门失败处理)
+            PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK = getPlasticRecycleOpenDoorValidateResultDelayTask(replyOrder);
+
+            myHandler.postDelayed(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK, PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME);
+
+        }else if (PLASTIC_BOTTLE_RECYCLE_CLOSE_DOOR_REPLY.equals(replyOrderType)){
+
+            Log.d(TAG, "收到关门响应指令");
+            // 塑料瓶回收门 - 关门指令，收到应发后，开启一个延时任务(x 秒内没有收到对应的开门结果，做错误处理) -> IC 没发或者发了，没收到
+            resetTask(PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK, myHandler);
+
+            // 重置延时校验关门结果任务(x 秒内没有收到对应的关门结果，做关门失败处理)
+            PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK = getPlasticRecycleCloseDoorValidateResultDelayTask(replyOrder);
+
+            myHandler.postDelayed(PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK, PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TIME);
+
+        }else if (PLASTIC_BOTTLE_RECYCLE_SCAN_VALIDATE_REPLY.equals(replyOrderType)){
+            // 3. 扫码结果反馈应答
+            Log.d(TAG, "扫码结果反馈指令响应!");
+        }else if (PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY.equals(replyOrderType)){
+            // 4. 强制回收指令应答
+            Log.d(TAG, "强制回收指令响应!");
+        }
     }
 
     /**
      * 处理指令执行结果
-     * @param v
+     * @param replyOrder
      */
-    public static void handleResultOrder(OrderValidate v, Handler myHandler){
-
-        Order replyOrder = v.getWaitReceiverOrder();
+    public static void handleResultOrder(Order replyOrder, Handler myHandler){
 
         if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.OPEN_USER_RECYCLE_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 塑料瓶回收门 - 开门结果，如果开门成功，开启一个延时关门任务(30秒)
-            if (PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK != null){
-                // 1. 收到开门指令，关闭延时检测开门结果任务
-                myHandler.removeCallbacks(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK);
-            }
 
-            // 2. 判断开门是否成功
+            // 塑料瓶回收门 - 开门结果, 收到开门指令，关闭延时检测开门结果任务
+            removeTask(PLASTIC_RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK, myHandler);
+
             // 判断开门是否成功
+            String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
             if ("FFFF".equals(replyOrder.getParam().toUpperCase())){
-                // TODO: 2018/12/22 界面提示，箱门已打开，请投递
-                // TODO: 2018/12/22 清空之前条码扫描存储数据
-                // 开门成功, 开启一个延时关门任务
-                if (PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK != null){
-                    // 已经存在一个延时关门任务
-                    // 移除
-                    myHandler.removeCallbacks(PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK);
-                    PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK = null;
-                }
-
-                // TODO: 2018/12/22 界面上同时开启倒计时 CountDownTimer
-                // 重置延时关门任务
-                PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK = getPlasticRecycleDoorDelayCloseTask();
-                myHandler.postDelayed(PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TASK, PLASTIC_RECYCLE_DOOR_DELAY_CLOSE_TIME);
-            }else {
-                // 开门失败
-                // TODO: 2018/12/22 界面提示，开门失败
+                Log.d(TAG, "收到开门成功指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_SUCCESS, ""));
+            }else if ("0000".equals(replyOrder.getParam().toUpperCase())){
+                Log.d(TAG, "收到开门失败指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_FAILD, ""));
             }
+
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.CLOSE_USER_RECYCLE_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 2. 塑料瓶回收门 - 关门结果，如果成功 -> 判断关门上下文环境，不是所有关门都触发下列操作
+
+            // 塑料瓶回收门 - 关门结果，如果成功 -> 判断关门上下文环境，不是所有关门都触发下列操作
+            removeTask(PLASTIC_RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK, myHandler);
+
+            String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
+            if ("FFFF".equals(replyOrder.getParam().toUpperCase())){
+                Log.d(TAG, "收到关门成功指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_SUCCESS));
+            }else if ("0000".equals(replyOrder.getParam().toUpperCase())){
+                Log.d(TAG, "收到关门失败指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
+            }else if ("EEEE".equals(replyOrder.getParam().toUpperCase())){
+                Log.d(TAG, "收到强制回收前置关门成功指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_SUCCESS, "EEEE"));
+            }else if ("1111".equals(replyOrder.getParam().toUpperCase())){
+                Log.d(TAG, "收到强制回收前置关门失败指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
+            }
+
+        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
+                ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
+            // 3. 扫码结果反馈结果 ???
+        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
+                ComConstant.FORCE_RECYCLE_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
+            // 4. 强制回收回收结果
+            String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
+            if ("FFFF".equals(replyOrder.getParam().toUpperCase())) {
+                Log.d(TAG, "收到强制回收成功指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_SUCCESS));
+            }else {
+                Log.d(TAG, "收到强制回收失败指令!");
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_FAILD));
+            }
         }
     }
 
     /**
      * 处理信号检测结果
-     * @param v
+     * @param replyOrder
      */
-    public static void handleSignalOrder(OrderValidate v){
-        Order replyOrder = v.getWaitReceiverOrder();
+    public static void handleSignalOrder(Order replyOrder){
         if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.REFRESH_DOOR_CLOESE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 1. 塑料瓶回收 光电 1 信号，刷新塑料瓶回收门延时关门任务时间(30秒重置)
-            // TODO: 2018/12/22 重置 Timer 倒计时
+            EventBus.getDefault().post(new MessageEvent("重置关门倒计时!", MessageEvent.MESSAGE_TYPE_RESET_CLOSE_DOOR_COUNTDOWN));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.BAR_CODE_SCAN_VALIDATE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 2. 条码扫描结果校验请求(校验光电 2 感应器触发)
-
+            EventBus.getDefault().post(new MessageEvent("请求获取扫码结果!", MessageEvent.MESSAGE_TYPE_REQUEST_SCAN_RESULT));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.COMMUNICATION_EXCEPTION_NOTICE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 3. 通信异常通知(延迟时间后，IC 未收到扫码结果)
-
+            // 目前只作用于 IC 未收到扫码结果
+            EventBus.getDefault().post(new MessageEvent("IC 未收到扫码结果!", MessageEvent.MESSAGE_TYPE_IC_NOT_RECEIVE_SCAN_RESULT));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.RECYCLE_RESULT_NOTICE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 4. 物品投递结果通知
             // 光电 3 感应器触发
-            // ​扫码失败，用户取回物品触发
-            // 扫码成功，延迟时间后，光电 3 感应器未触发​​
+                // 扫码成功，延迟时间后，光电 3 感应器未触发​​
+            // ​扫码失败，用户成功取回物品触发
             // .......
+            EventBus.getDefault().post(new MessageEvent(replyOrder.getParam(), MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY));
         }
     }
 
-    private static Runnable getPlasticRecycleOpenDoorValidateResultDelayTask(){
+    private static void resetTask(Runnable task, Handler handler){
+        if (task != null){
+            handler.removeCallbacks(task);
+            task = null;
+        }
+    }
+
+    private static void removeTask(Runnable task, Handler handler){
+        if (task != null){
+            handler.removeCallbacks(task);
+        }
+    }
+
+    private static Integer getReplyOrderType(String sourceAddress, String actionCode){
+        if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(sourceAddress) && ComConstant.OPEN_USER_RECYCLE_ACTION_CODE.equals(actionCode)){
+            // 塑料瓶回收 - 开门 - 应答指令
+            return PLASTIC_BOTTLE_RECYCLE_OPEN_DOOR_REPLY;
+        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(sourceAddress) && ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE.equals(actionCode)){
+            // 塑料瓶回收 - 关门 - 应答指令
+            return PLASTIC_BOTTLE_RECYCLE_CLOSE_DOOR_REPLY;
+        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(sourceAddress) && ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE.equals(actionCode)){
+            // 塑料瓶回收 - 扫码结果 - 应答指令
+            return PLASTIC_BOTTLE_RECYCLE_SCAN_VALIDATE_REPLY;
+        }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(sourceAddress) && ComConstant.FORCE_RECYCLE_ACTION_CODE.equals(actionCode)){
+            // 塑料瓶回收 - 强制回收 - 应答指令
+            return PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY;
+        }
+        return null;
+    }
+
+    private static Runnable getPlasticRecycleOpenDoorValidateResultDelayTask(final Order replyOrder){
         return new Runnable() {
             @Override
             public void run() {
                 // 收到开门指令应答后，计时 5 秒，如果还是没有收到开门结果，做开门失败处理！
-                // TODO: 2018/12/22 失败处理
-                EventBus.getDefault().post(new MessageEvent("开门失败！哇哈哈哈哈哈!", MessageEvent.MESSAGE_TYPE_NOTICE));
+                String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_FAILD));
             }
         };
     }
 
-    private static Runnable getPlasticRecycleDoorDelayCloseTask() {
+    private static Runnable getPlasticRecycleCloseDoorValidateResultDelayTask(final Order replyOrder){
         return new Runnable() {
             @Override
             public void run() {
-                // TODO: 2018/12/22 延时关门任务
-                // 1. 发送关门指令
-                // 2. 自动结算回收结果
+                // 收到关门指令应答后，计时 5 秒，如果还是没有收到关门结果，做关门失败处理！
+                String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
             }
         };
     }

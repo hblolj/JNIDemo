@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="120dp"
+    android:layout_height="170dp"
+    android:layout_gravity="center"
+    android:gravity="center">
+
+    <com.example.ori.jnidemo.widget.CategoryIconView
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:scaleType="centerCrop"
+        android:foreground="@drawable/ic_touch_menu"
+        android:src="@drawable/default_portrait"
+        android:layout_width="100dp"
+        android:layout_height="100dp" />
+
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="10dp"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:text="金属"
+        android:layout_width="100dp"
+        android:layout_height="30dp" />
+
+    <TextView
+        android:id="@+id/tv_price"
+        android:layout_marginBottom="5dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:text="0.60元/公斤"
+        android:layout_width="100dp"
+        android:layout_height="20dp" />
+</LinearLayout>

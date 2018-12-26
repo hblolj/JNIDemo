@@ -68,6 +68,11 @@ public class ComConstant {
     // 物品投递结果通知反馈操作码
     public static final String RECYCLE_RESULT_NOTICE_RESULT_ACTION_CODE = "C0";
 
+    // 投递物强制回收操作码
+    public static final String FORCE_RECYCLE_ACTION_CODE = "C1";
+    // 投递物强制回收操作反馈码
+    public static final String FORCE_RECYCLE_RESULT_ACTION_CODE = "C2";
+
     /**
      * 称重指令
      */
