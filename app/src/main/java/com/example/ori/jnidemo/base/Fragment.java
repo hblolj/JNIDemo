@@ -82,6 +82,8 @@ public abstract class Fragment extends android.support.v4.app.Fragment{
 
     }
 
+    public abstract void setData(Object data);
+
     /**
      * 返回按键出发时调用
      * @return 返回 true 表示我已处理返回逻辑，Activity 不用自己 finish。
