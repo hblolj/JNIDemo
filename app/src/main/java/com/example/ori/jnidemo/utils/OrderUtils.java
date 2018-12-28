@@ -3,6 +3,7 @@ package com.example.ori.jnidemo.utils;
 import android.os.Handler;
 import android.util.Log;
 
+import com.example.ori.jnidemo.bean.ActionMessageEvent;
 import com.example.ori.jnidemo.bean.Order;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.constant.ComConstant;
@@ -36,6 +37,18 @@ public class OrderUtils {
         comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
     }
 
+    public static void sendOrder(SerialHelper comHelper, ActionMessageEvent event, Handler myHandler){
+
+        Boolean empty = StringUtil.isEmpty(event.getParam());
+
+        Order sendOrder = new Order(ComConstant.ANDROID_ADDRESS, event.getTargetAddress(), event.getActionCode(), empty ? Order.DEFAULT_ORDER_PARAM : event.getParam());
+        Order replyOrder = new Order(event.getTargetAddress(), ComConstant.ANDROID_ADDRESS, event.getActionCode(), empty ? Order.DEFAULT_ORDER_PARAM : event.getParam());
+
+        SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, event.getRetryCount()));
+        Log.d(TAG, "第" + event.getRetryCount() + "次指令发送，指令内容: " + sendOrder.getOrderContent());
+        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+    }
+
     public static void sendNeedResponseOrder(SerialHelper comHelper, String targetAddress, String actionCode, String param, Handler myHandler, Integer retryCount){
 
         Boolean empty = StringUtil.isEmpty(param);
@@ -50,6 +63,23 @@ public class OrderUtils {
         SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, retryCount));
         SerialHelper.waitResults.put(key, sendOrder);
         Log.d(TAG, "第" + retryCount + "次指令发送，指令内容: " + sendOrder.getOrderContent());
+        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+    }
+
+    public static void sendNeedResponseOrder(SerialHelper comHelper, ActionMessageEvent event, Handler myHandler){
+
+        Boolean empty = StringUtil.isEmpty(event.getParam());
+
+        Order sendOrder = new Order(ComConstant.ANDROID_ADDRESS, event.getTargetAddress(), event.getActionCode(), empty ? Order.DEFAULT_ORDER_PARAM : event.getParam());
+        Order replyOrder = new Order(event.getTargetAddress(), ComConstant.ANDROID_ADDRESS, event.getActionCode(), empty ? Order.DEFAULT_ORDER_PARAM : event.getParam());
+
+        // 操作码 转 10进制 + 1，然后转回 16进制
+        String resultAction = CommonUtil.hexAdd(event.getActionCode(), 1);
+        String key = event.getTargetAddress() + resultAction;
+
+        SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, event.getRetryCount()));
+        SerialHelper.waitResults.put(key, sendOrder);
+        Log.d(TAG, "第" + event.getRetryCount() + "次指令发送，指令内容: " + sendOrder.getOrderContent());
         comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
     }
 }

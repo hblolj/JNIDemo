@@ -5,4 +5,17 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="home">HomeFragment</string>
     <string name="recycle">RecycleFragment</string>
+
+    <string name="opening_recycle_door">小黄狗正在努力开箱</string>
+
+    <string name="button_open_recycle_door">正在开箱......</string>
+    <string name="button_open_recycle_door_faild">开箱失败......</string>
+    <string name="button_close_recycle_door_faild">关箱失败......</string>
+    <string name="button_recycle_complate">投递完成</string>
+
+    <string name="barcode_validate_faild">塑料瓶条码检测失败，请在 30 秒内从投放口取出瓶子，不然会被回收机吞掉哦!</string>
+
+    <string name="open_door_success">箱门已打开，请投递......</string>
+    <string name="open_door_faild">开门失败，请联系管理员</string>
+    <string name="close_door_faild">关门失败，请联系管理员</string>
 </resources>

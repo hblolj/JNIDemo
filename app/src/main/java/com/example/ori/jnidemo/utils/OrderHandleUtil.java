@@ -45,7 +45,7 @@ public class OrderHandleUtil {
 
     public static void handlerReceiveData(String receiveData, Handler myHandler){
 
-        Log.d(TAG, "收到的数据: " + receiveData);
+        Log.d(TAG, "收到的串口数据: " + receiveData);
 
         // 1. 判断是否是应答指令 waitOrder 中查询
         OrderValidate replyValidate = SerialHelper.waitReplys.get(receiveData);
@@ -113,7 +113,7 @@ public class OrderHandleUtil {
 
         Integer replyOrderType = getReplyOrderType(replyOrder.getSourceAddress(), replyOrder.getActionCode());
         if (replyOrderType == null){
-            Log.d(TAG, "handleReplyOrder - 未知的应答指令: " + replyOrder.getOrderContent());
+            Log.d(TAG, "未知的应答指令: " + replyOrder.getOrderContent());
             return;
         }
 
@@ -164,10 +164,10 @@ public class OrderHandleUtil {
             String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
             if ("FFFF".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到开门成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_SUCCESS, ""));
+                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
             }else if ("0000".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到开门失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_FAILD, ""));
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
             }
 
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
@@ -179,16 +179,16 @@ public class OrderHandleUtil {
             String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
             if ("FFFF".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到关门成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_SUCCESS));
+                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, true));
             }else if ("0000".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到关门失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, true));
             }else if ("EEEE".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到强制回收前置关门成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_SUCCESS, "EEEE"));
+                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, false));
             }else if ("1111".equals(replyOrder.getParam().toUpperCase())){
                 Log.d(TAG, "收到强制回收前置关门失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_FAILD));
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, false));
             }
 
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
@@ -200,10 +200,10 @@ public class OrderHandleUtil {
             String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
             if ("FFFF".equals(replyOrder.getParam().toUpperCase())) {
                 Log.d(TAG, "收到强制回收成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_SUCCESS));
+                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_RESULT));
             }else {
                 Log.d(TAG, "收到强制回收失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_FAILD));
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_RESULT));
             }
         }
     }
@@ -216,24 +216,19 @@ public class OrderHandleUtil {
         if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.REFRESH_DOOR_CLOESE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 1. 塑料瓶回收 光电 1 信号，刷新塑料瓶回收门延时关门任务时间(30秒重置)
-            EventBus.getDefault().post(new MessageEvent("重置关门倒计时!", MessageEvent.MESSAGE_TYPE_RESET_CLOSE_DOOR_COUNTDOWN));
+            EventBus.getDefault().post(new MessageEvent("","重置关门倒计时!", MessageEvent.MESSAGE_TYPE_RESET_CLOSE_DOOR_COUNTDOWN));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.BAR_CODE_SCAN_VALIDATE_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 2. 条码扫描结果校验请求(校验光电 2 感应器触发)
-            EventBus.getDefault().post(new MessageEvent("请求获取扫码结果!", MessageEvent.MESSAGE_TYPE_REQUEST_SCAN_RESULT));
+            EventBus.getDefault().post(new MessageEvent("","请求获取扫码结果!", MessageEvent.MESSAGE_TYPE_REQUEST_SCAN_RESULT));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.COMMUNICATION_EXCEPTION_NOTICE_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 3. 通信异常通知(延迟时间后，IC 未收到扫码结果)
-            // 目前只作用于 IC 未收到扫码结果
-            EventBus.getDefault().post(new MessageEvent("IC 未收到扫码结果!", MessageEvent.MESSAGE_TYPE_IC_NOT_RECEIVE_SCAN_RESULT));
+            // 3. 通信异常通知(延迟时间后，IC 未收到扫码结果), 目前只作用于 IC 未收到扫码结果
+            EventBus.getDefault().post(new MessageEvent("", "IC 未收到扫码结果!", MessageEvent.MESSAGE_TYPE_IC_NOT_RECEIVE_SCAN_RESULT));
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.RECYCLE_RESULT_NOTICE_ACTION_CODE.equals(replyOrder.getActionCode())){
-            // 4. 物品投递结果通知
-            // 光电 3 感应器触发
-                // 扫码成功，延迟时间后，光电 3 感应器未触发​​
-            // ​扫码失败，用户成功取回物品触发
-            // .......
-            EventBus.getDefault().post(new MessageEvent(replyOrder.getParam(), MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY));
+            // 4. 单次物品投递结束
+            EventBus.getDefault().post(new MessageEvent("", replyOrder.getParam(), MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY));
         }
     }
 

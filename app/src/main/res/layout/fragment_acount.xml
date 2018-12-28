@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".fragments.AcountFragment">
+
+    <include
+        android:id="@+id/count_down_time"
+        layout="@layout/count_down_time"
+        android:layout_gravity="end"
+        android:layout_width="100dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="20dp"/>
+
+    <LinearLayout
+        android:layout_marginTop="30dp"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <ImageView
+            android:src="@drawable/check"
+            android:layout_width="30dp"
+            android:layout_height="30dp" />
+
+        <TextView
+            android:layout_marginLeft="20dp"
+            android:textStyle="bold"
+            android:textSize="25sp"
+            android:text="投递成功，已投递物品如下"
+            android:gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp" />
+    </LinearLayout>
+
+    <com.example.ori.jnidemo.widget.CategoryIconView
+        android:layout_marginTop="30dp"
+        android:layout_gravity="center"
+        android:src="@drawable/default_portrait"
+        android:layout_width="150dp"
+        android:layout_height="150dp" />
+
+    <TextView
+        android:id="@+id/tv_list"
+        android:layout_marginTop="30dp"
+        android:layout_gravity="center"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:text="饮料瓶 1 个"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp" />
+
+    <View
+        android:background="@android:color/darker_gray"
+        android:layout_marginTop="10dp"
+        android:layout_gravity="center"
+        android:layout_width="400dp"
+        android:layout_height="1dp"/>
+
+    <TextView
+        android:id="@+id/tv_money"
+        android:textStyle="bold"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:text="获得环保金 0.04 元"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp" />
+
+    <LinearLayout
+        android:layout_marginTop="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_finish_recycle"
+            android:text="结束投递"
+            android:textSize="20sp"
+            android:layout_width="300dp"
+            android:layout_height="80dp" />
+
+        <Button
+            android:id="@+id/btn_continue_recycle"
+            android:layout_marginLeft="40dp"
+            android:textSize="20sp"
+            android:text="继续投递"
+            android:layout_width="300dp"
+            android:layout_height="80dp" />
+    </LinearLayout>
+
+</LinearLayout>

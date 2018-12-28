@@ -4,30 +4,82 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
     tools:context=".fragments.RecycleFragment">
 
-    <!-- 倒计时 -->
-    <LinearLayout
+    <include
+        android:id="@+id/count_down_time"
+        layout="@layout/count_down_time"
+        android:layout_gravity="end"
         android:layout_width="100dp"
         android:layout_height="50dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/count_down_time">
+        android:layout_marginTop="20dp"/>
 
-        <ImageView
-            android:src="@drawable/clock"
-            android:layout_marginLeft="10dp"
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+    <LinearLayout
+        android:id="@+id/ll_recycle"
+        android:visibility="visible"
+        android:layout_width="match_parent"
+        android:layout_height="330dp"
+        android:orientation="vertical">
 
         <TextView
-            android:textColor="@android:color/white"
-            android:textSize="17sp"
+            android:id="@+id/tv_recycle_notice"
+            android:textStyle="bold"
+            android:layout_marginTop="50dp"
+            android:layout_gravity="center"
+            android:textSize="30sp"
             android:gravity="center"
-            android:text="27秒"
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+            android:text="铁血狼人正在努力开箱"
+            android:layout_width="600dp"
+            android:layout_height="50dp" />
+
+        <ImageView
+            android:background="@android:color/darker_gray"
+            android:layout_marginTop="30dp"
+            android:layout_gravity="center"
+            android:layout_width="500dp"
+            android:layout_height="200dp" />
+
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/ll_brify_summary"
+        android:visibility="gone"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="330dp">
+
+        <ImageView
+            android:src="@drawable/check2"
+            android:layout_gravity="center"
+            android:layout_width="200dp"
+            android:layout_height="200dp" />
+
+        <TextView
+            android:id="@+id/tv_curren_recycle_validate_count"
+            android:layout_marginTop="30dp"
+            android:layout_gravity="center"
+            android:textSize="30sp"
+            android:gravity="center"
+            android:text="已投递 1 个"
+            android:layout_width="200dp"
+            android:layout_height="50dp" />
+        
+        <TextView
+            android:layout_marginTop="20dp"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="还可继续投递，铁血狼人一次只能投递一个饮料瓶哦!"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_recycle_complete"
+        android:layout_marginTop="30dp"
+        android:textSize="30sp"
+        android:text="正在开箱......"
+        android:layout_gravity="center"
+        android:layout_width="300dp"
+        android:layout_height="80dp" />
 </LinearLayout>

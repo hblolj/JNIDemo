@@ -272,12 +272,10 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEventMain(MessageEvent event){
 
-        String receiverMessage = event.getMessage();
+        String receiverMessage = (String) event.getMessage();
 
         if (MessageEvent.MESSAGE_TYPE_NOTICE.equals(event.getType())){
-            ToastHelper.showShortMessage(this, event.getMessage());
-        }else if (MessageEvent.MESSAGE_TYPE_VIEW_NOTICE.equals(event.getType())){
-            tvNotice.setText(receiverMessage);
+            ToastHelper.showShortMessage(this, (String) event.getMessage());
         }else if (MessageEvent.MESSAGE_TYPE_OPEN_DOOR_SUCCESS.equals(event.getType())){
             // 界面提示，箱门已打开，请投递, 按钮改变为投递完成
             SerialHelper.waitResults.remove(receiverMessage);
@@ -299,8 +297,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             // 重置关门倒计时
             resetTimer1(timer1);
         }else if (MessageEvent.MESSAGE_TYPE_REQUEST_SCAN_RESULT.equals(event.getType())){
-            // IC 请求扫码结果
-            // 校验扫码结果
+            // IC 请求扫码结果 校验扫码结果
             Boolean result = BarCodeScanUtil.getInstance().validateScanResult();
             // 向 IC 返回扫码结果
             OrderUtils.sendOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS, ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE, result ? "FFFF" : "0000", myHandler, 1);
@@ -320,7 +317,6 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
                 // 扫码失败
                 // 界面提示，倒计时显示
                 String notice = "瓶子条码检测失败，请在 30 秒内从投放口取出瓶子，不然会被回收机吞掉哦!";
-
                 tvNotice.setText(notice);
                 timer1.cancel();
                 tvCloseDoorCountDownTime.setText("延迟关门倒计时");
@@ -340,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
             // 光电 3
             // 光电 2 成功取回 -> 区分光电 2 与 光电 3
             // 光电 2 触发，且成功后，开启延时，延时触发仍未收到光电 3
-            String param = event.getMessage();
+            String param = (String) event.getMessage();
             String notice = "";
             // 判断是否触发了光电 3，触发了表示有物品投入，未触发表示没有
             if ("0000".equals(param)){
@@ -400,7 +396,7 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
         }else if (MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_SUCCESS.equals(event.getType())){
             // 关门成功
             SerialHelper.waitResults.remove(event.getMessage());
-            if (StringUtil.isNotEmpty(event.getExtra())){
+            if (StringUtil.isNotEmpty((String) event.getExtra())){
                 // 强制回收前置关门操作
                 // 发送强制回收指令
                 OrderUtils.sendNeedResponseOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS, ComConstant.FORCE_RECYCLE_ACTION_CODE, null, myHandler, 1);
