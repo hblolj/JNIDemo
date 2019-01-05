@@ -54,8 +54,8 @@ public class CategoryAdapter extends BaseAdapter{
         if (convertView == null){
             convertView = View.inflate(context, R.layout.category_grid_view_item_layout, null);
             holder = new ViewHolder();
-            holder.name = convertView.findViewById(R.id.tv_name);
-            holder.price = convertView.findViewById(R.id.tv_price);
+            holder.name = (TextView) convertView.findViewById(R.id.tv_name);
+            holder.price = (TextView) convertView.findViewById(R.id.tv_price);
             convertView.setTag(holder);
         }else {
             holder = (ViewHolder) convertView.getTag();

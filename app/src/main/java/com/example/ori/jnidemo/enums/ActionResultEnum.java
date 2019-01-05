@@ -21,11 +21,16 @@ public enum ActionResultEnum {
     RECYCLE_COMPLATE_VALIDATE_FAILD(12, "光电 3 未触发"),
     FORCE_RECYCLE_SUCCESS(13, "强制回收成功"),
     FORCE_RECYCLE_FAILD(14, "强制回收失败"),
+    PREFIX_WEIGH_SUCCESS(15, "开门前置称重成功"),
+    SUFFIX_WEIGH_SUCCESS(16, "关门后置称重成功"),
+    WEIGH_PREFIX_CLOSE_DOOR_SUCCESS(17, "称重前置关门成功"),
     ;
 
     private Integer resultCode;
 
     private String resultName;
+
+    private Object extra;
 
     ActionResultEnum() {
     }
@@ -35,19 +40,25 @@ public enum ActionResultEnum {
         this.resultName = resultName;
     }
 
-    public Integer getResultCode() {
-        return resultCode;
+    ActionResultEnum(Integer resultCode, String resultName, Object extra) {
+        this.resultCode = resultCode;
+        this.resultName = resultName;
+        this.extra = extra;
     }
 
-    public void setResultCode(Integer resultCode) {
-        this.resultCode = resultCode;
+    public Integer getResultCode() {
+        return resultCode;
     }
 
     public String getResultName() {
         return resultName;
     }
 
-    public void setResultName(String resultName) {
-        this.resultName = resultName;
+    public Object getExtra() {
+        return extra;
+    }
+
+    public void setExtra(Object extra) {
+        this.extra = extra;
     }
 }

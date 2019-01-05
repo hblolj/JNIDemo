@@ -81,6 +81,7 @@
         <Button
             android:id="@+id/btn_finish_recycle"
             android:text="结束投递"
+            android:background="@drawable/finish_btn"
             android:textSize="20sp"
             android:layout_width="300dp"
             android:layout_height="80dp" />
@@ -89,6 +90,7 @@
             android:id="@+id/btn_continue_recycle"
             android:layout_marginLeft="40dp"
             android:textSize="20sp"
+            android:background="@drawable/continue_btn"
             android:text="继续投递"
             android:layout_width="300dp"
             android:layout_height="80dp" />

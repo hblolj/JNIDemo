@@ -17,7 +17,11 @@ public class CategoryItem {
 
     private String unitPrice;
 
+    private Double dPrice;
+
     private Boolean publicGood;
+
+    private String unit;
 
     public CategoryItem() {
     }
@@ -25,7 +29,9 @@ public class CategoryItem {
     public CategoryItem(CategoryEnum categoryEnum) {
         this.itemId = categoryEnum.getId();
         this.categoryName = categoryEnum.getName();
-        this.unitPrice = categoryEnum.getPrice();
+        this.unitPrice = categoryEnum.getDescription();
+        this.dPrice = categoryEnum.getUnitPrice();
+        this.unit = categoryEnum.getUnit();
     }
 
     public CategoryItem(String categoryName, String unitPrice) {
@@ -61,7 +67,9 @@ public class CategoryItem {
                 ", icon='" + icon + '\'' +
                 ", categoryName='" + categoryName + '\'' +
                 ", unitPrice='" + unitPrice + '\'' +
+                ", dPrice=" + dPrice +
                 ", publicGood=" + publicGood +
+                ", unit='" + unit + '\'' +
                 '}';
     }
 
@@ -103,5 +111,21 @@ public class CategoryItem {
 
     public void setItemId(Integer itemId) {
         this.itemId = itemId;
+    }
+
+    public Double getdPrice() {
+        return dPrice;
+    }
+
+    public void setdPrice(Double dPrice) {
+        this.dPrice = dPrice;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 }

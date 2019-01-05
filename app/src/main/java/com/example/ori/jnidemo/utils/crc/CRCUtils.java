@@ -20,4 +20,13 @@ public class CRCUtils {
         return CommonUtil.bytesToHexString(b);
     }
 
+    public static Boolean validateOrderCrc(String orderContent, String crc){
+        byte[] bs = CommonUtil.toByteArray(orderContent);
+        String crc1 = getCRC(bs).toUpperCase();
+        if (crc1.equals(crc)){
+            return true;
+        }
+        return false;
+    }
+
 }

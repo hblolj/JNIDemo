@@ -145,17 +145,9 @@ public class SerialHelper{
 	 * @param waitReceiverContent
 	 * @param myHandler
 	 */
-	public void sendHex(Order sendOrder, String waitReceiverContent, Handler myHandler){
-		// 计算等待的指令，加入全局变量
+	public void sendHex(Order sendOrder, String waitReceiverContent, Handler myHandler) throws IOException, InterruptedException {
 		byte[] bOutArray = CommonUtil.toByteArray(sendOrder.getOrderContent());
-		try {
-			send(bOutArray);
-		} catch (IOException | InterruptedException e) {
-			// 数据发送异常，移除存储的校验对象
-			SerialHelper.waitReplys.remove(waitReceiverContent);
-			EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
-			e.printStackTrace();
-		}
+		send(bOutArray);
 		// 开启一个延迟任务
 		Message message = new Message();
 		message.obj = waitReceiverContent;

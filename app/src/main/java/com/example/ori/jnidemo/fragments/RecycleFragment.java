@@ -15,6 +15,9 @@ import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.enums.ActionResultEnum;
+import com.example.ori.jnidemo.enums.CategoryEnum;
+import com.example.ori.jnidemo.enums.WeighTypeEnum;
+import com.example.ori.jnidemo.utils.StringUtil;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -22,6 +25,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.OnClick;
+
+import static com.example.ori.jnidemo.constant.ComConstant.getAddressCodeByCategoryItemId;
 
 /**
  * 回收 Fragment
@@ -32,8 +37,10 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
     public static final Integer FRAGMENT_ID = 2;
 
-    // 回收门关闭时间默认设为 30 秒
-    public static final Integer CLOSE_DOOR_COUNT_DOWN_TIME = 30000;
+    // 塑料瓶回收门关闭时间默认设为 30 秒
+    public static final Integer PLASTIC_BOTTLE_CLOSE_DOOR_COUNT_DOWN_TIME = 30000;
+    // 金属、纸类回收门关闭时间默认设为 60 秒
+    public static final Integer OTHER_CLOSE_DOOR_COUNT_DOWN_TIME = 60000;
 
     private Integer tempTimer;
 
@@ -47,6 +54,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
     @BindView(R.id.btn_recycle_complete)
     Button btnRecycleComplate;
+
+    @BindView(R.id.count_down_time)
+    LinearLayout llCountDownTime;
 
     @BindView(R.id.ll_recycle)
     LinearLayout llRecycle;
@@ -79,13 +89,40 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     @Override
     protected void initData() {
         super.initData();
-        tempTimer = CLOSE_DOOR_COUNT_DOWN_TIME;
+
+        // 初始化界面
+        disableButton(btnRecycleComplate);
+        btnRecycleComplate.setText(R.string.button_open_recycle_door);
+        llBrifySummary.setVisibility(View.GONE);
+        llRecycle.setVisibility(View.VISIBLE);
+
+        String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
+        if (StringUtil.isEmpty(address)){
+            // TODO: 2019/1/2 尚未支持的回收类型
+            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            return;
+        }
+
+        // 按回收物类型匹配对应的延迟关门时间
+        if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(mCurrentItem.getItemId())){
+            tempTimer = PLASTIC_BOTTLE_CLOSE_DOOR_COUNT_DOWN_TIME;
+        }else {
+            tempTimer = OTHER_CLOSE_DOOR_COUNT_DOWN_TIME;
+        }
+
+        // 初始化关门倒计时
         initCloseDoorCountDownTimer();
+        // 初始化强制回收倒计时
         initForceRecycleCountDownTimer();
 
-        // TODO: 2018/12/28 发送开门指令，暂时写死为塑料瓶回收地址
-        EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
-                ComConstant.OPEN_USER_RECYCLE_ACTION_CODE, null, 1, true));
+        // 饮料瓶 直接开门
+        // 玻璃、有害垃圾 直接开门
+        // 其他 先称重，称重成功之后再开门
+        if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(mCurrentItem.getItemId())){
+            EventBus.getDefault().post(new ActionMessageEvent(address, ComConstant.OPEN_USER_RECYCLE_ACTION_CODE, null, 1, true));
+        }else {
+            EventBus.getDefault().post(new ActionMessageEvent(address, ComConstant.WEIGH_ACTION_CODE, WeighTypeEnum.PREFIX_WEIGH.getCode(), 1, true));
+        }
     }
 
     @Override
@@ -108,11 +145,20 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onSerialPortActionResultMessageEvent(ActionResultEnum result){
+
+        String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
+        if (StringUtil.isEmpty(address)){
+            // TODO: 2019/1/2 尚未支持的回收类型
+            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            return;
+        }
+
         if (ActionResultEnum.OPEN_DOOR_SUCCESS.equals(result)){
             openDoorSuccess();
         }else if (ActionResultEnum.OPEN_DOOR_FAILD.equals(result)){
             openDoorFaild();
         }else if (ActionResultEnum.CLOSE_DOOR_SUCCESS.equals(result)){
+            // 普通关门成功
             closeDoorSuccess();
         }else if (ActionResultEnum.PREFIX_CLOSE_DOOR_SUCCESS.equals(result)){
             prefixCloseDoorSuccess();
@@ -140,12 +186,21 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
             showView(llBrifySummary, llRecycle);
         }else if (ActionResultEnum.FORCE_RECYCLE_SUCCESS.equals(result)){
             // 强制回收成功
-            // 跳转到 AcountFragment
-            EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, ""));
+            // 跳转到 AcountFragment 界面上未显示强制回收成功
+            EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, mCurrentItem));
         }else if (ActionResultEnum.FORCE_RECYCLE_FAILD.equals(result)){
             // 强制回收失败
-            // 跳转到 AcountFragment
-            EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, ""));
+            // 跳转到 AcountFragment 界面上未显示强制回收失败
+            EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, mCurrentItem));
+        }else if (ActionResultEnum.PREFIX_WEIGH_SUCCESS.equals(result)){
+            // 开门前置称重成功，下一步应该去开门
+            EventBus.getDefault().post(new ActionMessageEvent(address, ComConstant.OPEN_USER_RECYCLE_ACTION_CODE, null, 1, true));
+        }else if (ActionResultEnum.SUFFIX_WEIGH_SUCCESS.equals(result)){
+            // 关门后置称重成功，下一步应该去结算，当前称重结果传递
+            EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, mCurrentItem));
+        }else if (ActionResultEnum.WEIGH_PREFIX_CLOSE_DOOR_SUCCESS.equals(result)){
+            // 称重前置关门成功，发送称重指令
+            EventBus.getDefault().post(new ActionMessageEvent(address, ComConstant.WEIGH_ACTION_CODE, WeighTypeEnum.SUFFIX_WEIGH.getCode(), 1, true));
         }
     }
 
@@ -155,8 +210,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     }
 
     private void calcCurrentNum(){
-        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + "个";
+        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
         tvCurrenRecycleValidateCount.setText(s);
+        enableButton(btnRecycleComplate);
     }
 
     /**
@@ -166,11 +222,14 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         // 1. 强制回收任务关闭
         forceRecycleCountDownTimer.cancel();
         tvCountDownTime.setVisibility(View.GONE);
+        llCountDownTime.setVisibility(View.INVISIBLE);
         // 2. 延时关门任务开启
         resetTimer(closeDoorCountDownTimer, null);
         // 显示结算页面
-        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + "个";
+        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
         tvCurrenRecycleValidateCount.setText(s);
+        // 投递完成按钮置为可点击状态
+        enableButton(btnRecycleComplate);
         showView(llBrifySummary, llRecycle);
     }
 
@@ -184,7 +243,7 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     }
 
     /**
-     * 开门成功
+     * 开门成功，包括了塑料瓶、金属、纸类
      */
     private void openDoorSuccess(){
         tvRecycleNotice.setText(R.string.open_door_success);
@@ -195,23 +254,33 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     }
 
     /**
-     * 开门失败
+     * 开门失败，包括了塑料瓶、金属、纸类
      */
     private void openDoorFaild(){
-        tvRecycleNotice.setText(R.string.open_door_faild);
+        tvRecycleNotice.setText(R.string.close_door_faild);
         btnRecycleComplate.setText(R.string.button_open_recycle_door_faild);
         disableButton(btnRecycleComplate);
     }
 
     /**
-     * 关门成功
+     * 关门成功，包括了塑料瓶、金属、纸类
      * 投递完成成功 -> 结算页面
      */
     private void closeDoorSuccess(){
         // 按钮置为灰色
         disableButton(btnRecycleComplate);
         // 跳转到结算 Fragement
-        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, ""));
+        // 要标明结算目标，塑料瓶 or 纸类 or 金属，把单价传递给结算页面
+        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AcountFragment.FRAGMENT_ID, mCurrentItem));
+    }
+
+    /**
+     * 关门失败，包括了塑料瓶、金属、纸类
+     */
+    private void closeDoorFaild(){
+        tvRecycleNotice.setText(R.string.close_door_faild);
+        btnRecycleComplate.setText(R.string.button_close_recycle_door_faild);
+        disableButton(btnRecycleComplate);
     }
 
     /**
@@ -219,15 +288,6 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
      */
     private void prefixCloseDoorSuccess(){
         // 投递完成按钮置为不可点击
-        disableButton(btnRecycleComplate);
-    }
-
-    /**
-     * 关门失败
-     */
-    private void closeDoorFaild(){
-        tvRecycleNotice.setText(R.string.close_door_faild);
-        btnRecycleComplate.setText(R.string.button_close_recycle_door_faild);
         disableButton(btnRecycleComplate);
     }
 
@@ -244,6 +304,8 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
      * 条码扫描校验失败
      */
     private void barCodeValidateFaild(){
+        llRecycle.setVisibility(View.VISIBLE);
+        llBrifySummary.setVisibility(View.GONE);
         // 投递完成按钮置为不可点击
         disableButton(btnRecycleComplate);
         // 提示用户取回物品
@@ -261,10 +323,23 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         // 关门延时任务关闭
         closeDoorCountDownTimer.cancel();
         tvCountDownTime.setVisibility(View.GONE);
+        llCountDownTime.setVisibility(View.INVISIBLE);
         disableButton(btnRecycleComplate);
         // 发送关门指令
-        EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
-                ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, null, 1, true));
+        // 动态地址
+        String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
+        if (StringUtil.isEmpty(address)){
+            // TODO: 2019/1/2 尚未支持的回收类型
+            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            return;
+        }
+        // 正常业务关门 -> 塑料瓶
+        // 称重前置关门 -> 金属、之类
+        String param = null;
+        if (!CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(mCurrentItem.getItemId())){
+            param = "0002";
+        }
+        EventBus.getDefault().post(new ActionMessageEvent(address, ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, param, 1, true));
     }
 
     private void initCloseDoorCountDownTimer() {
@@ -299,6 +374,7 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
                     // 强制回收前置关门指令
                     forceRecycleCountDownTimer.cancel();
                     tvCountDownTime.setVisibility(View.GONE);
+                    llCountDownTime.setVisibility(View.INVISIBLE);
                     EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
                             ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, "0001", 1, true));
                 }
@@ -311,6 +387,7 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
             tempTimer = newTime;
         }
         tvCountDownTime.setVisibility(View.VISIBLE);
+        llCountDownTime.setVisibility(View.VISIBLE);
         timer.cancel();
         timer.start();
     }

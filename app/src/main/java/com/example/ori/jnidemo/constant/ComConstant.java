@@ -1,5 +1,7 @@
 package com.example.ori.jnidemo.constant;
 
+import com.example.ori.jnidemo.enums.CategoryEnum;
+
 public class ComConstant {
 
     /**
@@ -73,10 +75,10 @@ public class ComConstant {
     // 投递物强制回收操作反馈码
     public static final String FORCE_RECYCLE_RESULT_ACTION_CODE = "C2";
 
-    /**
-     * 称重指令
-     */
-    public static final String WEIGH_ACTION_CODE = "D1";
+    // 称重操作码
+    public static final String WEIGH_ACTION_CODE = "C3";
+    // 称重结果反馈码
+    public static final String WEIGH_RESULT_ACTION_CODE = "C4";
 
     public static String getAddressCodeByName(String addressName){
         switch (addressName){
@@ -96,5 +98,19 @@ public class ComConstant {
             case "称重":return WEIGH_ACTION_CODE;
             default: return null;
         }
+    }
+
+    public static String getAddressCodeByCategoryItemId(Integer itemId){
+        if (CategoryEnum.METAL_REGENERANT.getId().equals(itemId)){
+            // 金属
+            return METAL_RECYCLE_IC_ADDRESS;
+        }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(itemId)){
+            // 纸类
+            return PAPER_RECYCLE_IC_ADDRESS;
+        }else if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(itemId)){
+            // 塑料瓶
+            return PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS;
+        }
+        return null;
     }
 }

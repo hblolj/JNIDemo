@@ -4,10 +4,15 @@ import android.os.Handler;
 import android.util.Log;
 
 import com.example.ori.jnidemo.bean.ActionMessageEvent;
+import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.bean.Order;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
+
+import org.greenrobot.eventbus.EventBus;
+
+import java.io.IOException;
 
 /**
  * @author: hblolj
@@ -22,7 +27,14 @@ public class OrderUtils {
         validate.setRetryCount(validate.getRetryCount() + 1);
         SerialHelper.waitReplys.put(validate.getWaitReceiverOrder().getOrderContent(), validate);
         Log.d(TAG, "第" + validate.getRetryCount() + "次指令发送，指令内容: " + validate.getSendOrder().getOrderContent());
-        comHelper.sendHex(validate.getSendOrder(), validate.getWaitReceiverOrder().getOrderContent(), myHandler);
+        try {
+            comHelper.sendHex(validate.getSendOrder(), validate.getWaitReceiverOrder().getOrderContent(), myHandler);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            // 数据发送异常，移除存储的校验对象
+            SerialHelper.waitReplys.remove(validate.getWaitReceiverOrder().getOrderContent());
+            EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
+        }
     }
 
     public static void sendOrder(SerialHelper comHelper, String targetAddress, String actionCode, String param, Handler myHandler, Integer retryCount){
@@ -34,7 +46,14 @@ public class OrderUtils {
 
         SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, retryCount));
         Log.d(TAG, "第" + retryCount + "次指令发送，指令内容: " + sendOrder.getOrderContent());
-        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        try {
+            comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            // 数据发送异常，移除存储的校验对象
+            SerialHelper.waitReplys.remove(replyOrder.getOrderContent());
+            EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
+        }
     }
 
     public static void sendOrder(SerialHelper comHelper, ActionMessageEvent event, Handler myHandler){
@@ -46,7 +65,14 @@ public class OrderUtils {
 
         SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, event.getRetryCount()));
         Log.d(TAG, "第" + event.getRetryCount() + "次指令发送，指令内容: " + sendOrder.getOrderContent());
-        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        try {
+            comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            // 数据发送异常，移除存储的校验对象
+            SerialHelper.waitReplys.remove(replyOrder.getOrderContent());
+            EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
+        }
     }
 
     public static void sendNeedResponseOrder(SerialHelper comHelper, String targetAddress, String actionCode, String param, Handler myHandler, Integer retryCount){
@@ -63,7 +89,15 @@ public class OrderUtils {
         SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, retryCount));
         SerialHelper.waitResults.put(key, sendOrder);
         Log.d(TAG, "第" + retryCount + "次指令发送，指令内容: " + sendOrder.getOrderContent());
-        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        try {
+            comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            // 数据发送异常，移除存储的校验对象
+            SerialHelper.waitReplys.remove(replyOrder.getOrderContent());
+            SerialHelper.waitResults.remove(key);
+            EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
+        }
     }
 
     public static void sendNeedResponseOrder(SerialHelper comHelper, ActionMessageEvent event, Handler myHandler){
@@ -80,6 +114,14 @@ public class OrderUtils {
         SerialHelper.waitReplys.put(replyOrder.getOrderContent(), new OrderValidate(sendOrder, replyOrder, event.getRetryCount()));
         SerialHelper.waitResults.put(key, sendOrder);
         Log.d(TAG, "第" + event.getRetryCount() + "次指令发送，指令内容: " + sendOrder.getOrderContent());
-        comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        try {
+            comHelper.sendHex(sendOrder, replyOrder.getOrderContent(), myHandler);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            // 数据发送异常，移除存储的校验对象
+            SerialHelper.waitReplys.remove(replyOrder.getOrderContent());
+            SerialHelper.waitResults.remove(key);
+            EventBus.getDefault().post(new MessageEvent("消息发送异常!", MessageEvent.MESSAGE_TYPE_NOTICE));
+        }
     }
 }

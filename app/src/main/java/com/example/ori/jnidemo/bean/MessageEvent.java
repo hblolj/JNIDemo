@@ -23,6 +23,8 @@ public class MessageEvent {
     public static final Integer MESSAGE_TYPE_FORCE_RECYCLE_RESULT = 97;
     public static final Integer MESSAGE_TYPE_FORCE_RECYCLE_SUCCESS = 11;
     public static final Integer MESSAGE_TYPE_FORCE_RECYCLE_FAILD = 12;
+    // 称重结果
+    public static final Integer MESSAGE_TYPE_WEIGH_RESULT = 96;
 
     private String key;
 

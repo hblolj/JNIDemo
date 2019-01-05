@@ -3,22 +3,27 @@ package com.example.ori.jnidemo;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.InputDevice;
+import android.view.KeyEvent;
 
 import com.example.ori.jnidemo.base.Activity;
 import com.example.ori.jnidemo.base.Fragment;
 import com.example.ori.jnidemo.bean.ActionMessageEvent;
+import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.ComBean;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
 import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.enums.ActionResultEnum;
-import com.example.ori.jnidemo.enums.RecycleBriefSummaryTypeEnum;
+import com.example.ori.jnidemo.enums.CategoryEnum;
+import com.example.ori.jnidemo.enums.WeighTypeEnum;
 import com.example.ori.jnidemo.fragments.AcountFragment;
 import com.example.ori.jnidemo.fragments.HomeFragment;
 import com.example.ori.jnidemo.fragments.RecycleFragment;
 import com.example.ori.jnidemo.helper.NavHelper;
 import com.example.ori.jnidemo.interfaces.ComDataReceiverInterface;
+import com.example.ori.jnidemo.utils.BizHandleUtil;
 import com.example.ori.jnidemo.utils.CommonUtil;
 import com.example.ori.jnidemo.utils.OrderHandleUtil;
 import com.example.ori.jnidemo.utils.OrderUtils;
@@ -43,15 +48,13 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     public static Integer TOTAL_VALID_PLASTIC_BOTTLE_NUM = 0;
     // 一次开关门之间回收的瓶子数量
     public static Integer CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM = 0;
+    // 回收机中金属总重量
+    public static Double PREFIX_TOTAL_METAL_WEIGH;
+    public static Double SUFIX_TOTAL_METAL_WEIGH;
+    // 回收机中纸类总重量
+    public static Double PREFIX_TOTAL_PAPER_WEIGH;
+    public static Double SUFIX_TOTAL_PAPER_WEIGH;
 
-    /**
-     * 塑料瓶回收完成确认延迟任务(光电 3 信号延迟检验)
-     */
-    private static Runnable PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TASK = null;
-    /**
-     * 塑料瓶回收完成确认延迟任务(光电 3 信号延迟检验) 延迟时间
-     */
-    private static final Long PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TIME = 30000L;
 
     public NavHelper<Integer> navHelper;
 
@@ -85,7 +88,6 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
             return false;
         }
     });
-    private Runnable recycleCompleteConfirmDelayTask;
 
     @Override
     protected int getContentLayoutId() {
@@ -109,6 +111,10 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     @Override
     protected void initData() {
         super.initData();
+        for (int id : InputDevice.getDeviceIds()) {
+            String name = InputDevice.getDevice(id).getName().trim();
+            Log.d(TAG, "DeviceNames: " + name);
+        }
         // 初始化点击
         navHelper.performClickMenu(HomeFragment.FRAGMENT_ID);
         reConnectionSerial();
@@ -151,93 +157,33 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         if (MessageEvent.MESSAGE_TYPE_NOTICE.equals(event.getType())){
             ToastHelper.showShortMessage(this, (String) event.getMessage());
         }else if (MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT.equals(event.getType())){
-            // 开门结果
-            SerialHelper.waitResults.remove(event.getKey());
-            Boolean openDoorResult = (Boolean) event.getMessage();
-            if (openDoorResult){
-                // 开门成功
-                BarCodeScanUtil.getInstance().clearData();
-            }
-            // 通知 RecyclerFragment 开门结果
-            EventBus.getDefault().post(openDoorResult ? ActionResultEnum.OPEN_DOOR_SUCCESS : ActionResultEnum.OPEN_DOOR_FAILD);
+            // 开门结果处理
+            BizHandleUtil.handleOpenDoorResult(event);
         }else if (MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT.equals(event.getType())){
             // 关门结果
-            SerialHelper.waitResults.remove(event.getKey());
-            Boolean closeDoorResult = (Boolean) event.getMessage();
-            if (closeDoorResult){
-                // 关门成功
-                BarCodeScanUtil.getInstance().clearData();
-                Boolean normalCloseDoor = (Boolean) event.getExtra();
-                if (!normalCloseDoor){
-                    // 强制回收前置关门结果
-                    EventBus.getDefault().post(ActionResultEnum.PREFIX_CLOSE_DOOR_SUCCESS);
-                    // 发送强制回收指令
-                    OrderUtils.sendNeedResponseOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
-                            ComConstant.FORCE_RECYCLE_ACTION_CODE, null, myHandler, 1);
-                    return;
-                }
-            }
-            EventBus.getDefault().post(closeDoorResult ? ActionResultEnum.CLOSE_DOOR_SUCCESS : ActionResultEnum.CLOSE_DOOR_FAILD);
+            BizHandleUtil.handleCloseDoorResult(event, comHelper, myHandler);
         }else if (MessageEvent.MESSAGE_TYPE_RESET_CLOSE_DOOR_COUNTDOWN.equals(event.getType())){
             // 光电 1 信号 -> 关门倒计时
             EventBus.getDefault().post(ActionResultEnum.REFRESH_CLOSE_DOOR_COUNT_DOWN_TIME);
         }else if (MessageEvent.MESSAGE_TYPE_REQUEST_SCAN_RESULT.equals(event.getType())){
             // IC 请求扫码结果 校验扫码结果
-            Boolean scanResult = BarCodeScanUtil.getInstance().validateScanResult();
-            if (scanResult){
-                // 开启一个光电 3 检测延时，延时触发，走单次回收结束流程
-                startRecycleComplteConfirmDelayTask();
-            }
-            // 返回扫码结果给 IC
-            OrderUtils.sendOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS, ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE, scanResult ? "FFFF" : "0000", myHandler, 1);
-            EventBus.getDefault().post(scanResult ? ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_SUCCESS : ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_FAILD);
+            BizHandleUtil.handleScanRequest(event, comHelper, myHandler);
         }else if (MessageEvent.MESSAGE_TYPE_IC_NOT_RECEIVE_SCAN_RESULT.equals(event.getType())){
             // IC 请求扫码结果后，规定时间内未收到扫码结果，做扫码失败相同处理
             EventBus.getDefault().post(ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_FAILD);
         }else if (MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY.equals(event.getType())){
             // 单次回收结束
-            String param = (String) event.getMessage();
-            if (RecycleBriefSummaryTypeEnum.COMPLATE_SINGAL.getCode().equals(param)){
-                // 光电 3 触发
-                // 1. 移除光电 3 校验延时任务
-                clearTask(PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TASK);
-                // 2. 检查扫码结果，进行消消乐
-                TOTAL_PLASTIC_BOTTLE_NUM ++;
-                if (BarCodeScanUtil.getInstance().validateScanResult()){
-                    // 移除第一个扫码结果，有效投递数 + 1
-                    BarCodeScanUtil.getInstance().consumeScanResult();
-                    // 当次投递数 + 1
-                    CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM++;
-                    TOTAL_VALID_PLASTIC_BOTTLE_NUM++;
-                }
-                // 4. 通知 RecycleFragment 更新，界面显示切换 -> 当前投递数
-                EventBus.getDefault().post(ActionResultEnum.RECYCLE_BRIEF_SUMMARY);
-            }else if (RecycleBriefSummaryTypeEnum.SCAN_VALIDATE_FAILD_USER_TAKE_BACK.getCode().equals(param)){
-                // 扫码失败，用户成功取回
-                EventBus.getDefault().post(ActionResultEnum.USER_TAKE_BACK);
-            }else if (RecycleBriefSummaryTypeEnum.SCAN_VALIDATE_SUCCESS_DONT_RECEIVE_COMPLATE_SINGAL.getCode().equals(param)){
-                // 扫码成功，光电 3 未触发
-                EventBus.getDefault().post(ActionResultEnum.RECYCLE_COMPLATE_VALIDATE_FAILD);
-            }
+            BizHandleUtil.handleSingleRecoveryComplateMessage(event, myHandler);
         }else if (MessageEvent.MESSAGE_TYPE_FORCE_RECYCLE_RESULT.equals(event.getType())){
             // 强制回收结果
             SerialHelper.waitResults.remove(event.getKey());
             // 成功与失败分别走单次回收结束流程，参数不一致
             Boolean result = (Boolean) event.getMessage();
             EventBus.getDefault().post(result ? ActionResultEnum.FORCE_RECYCLE_SUCCESS : ActionResultEnum.FORCE_RECYCLE_FAILD);
-        }
-    }
-
-    private void startRecycleComplteConfirmDelayTask() {
-        clearTask(PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TASK);
-        PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TASK = getRecycleCompleteConfirmDelayTask();
-        myHandler.postDelayed(PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TASK, PLASTIC_BOTTLE_RECYCLE_COMPLETE_CONFIRM_DELAY_TIME);
-    }
-
-    private void clearTask(Runnable task){
-        if (task != null){
-            myHandler.removeCallbacks(task);
-            task = null;
+        }else if (MessageEvent.MESSAGE_TYPE_WEIGH_RESULT.equals(event.getType())){
+            // 称重结果
+            SerialHelper.waitResults.remove(event.getKey());
+            BizHandleUtil.handleWeighResultMessage(event);
         }
     }
 
@@ -306,14 +252,61 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
     }
 
-    public Runnable getRecycleCompleteConfirmDelayTask() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                // TODO: 2018/12/28 0002 抽取成 Enum
-                // 收到光电 2 触发后，计时 2 秒，如果还是没有收到光电 3 信号，做结算处理！
-                EventBus.getDefault().post(new MessageEvent("","0002", MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY));
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getDevice().getName().equals(BarCodeScanUtil.DEVICE_NAME)){
+            int keyCode = event.getKeyCode();
+            if (keyCode != KeyEvent.KEYCODE_ENTER){
+                if (event.getAction() == KeyEvent.ACTION_DOWN){
+                    BarCodeScanUtil.getInstance().checkLetterStatus(event);
+                    BarCodeScanUtil.getInstance().keyCodeToNum(keyCode);
+                }
+            }else {
+                if (event.getAction() == KeyEvent.ACTION_DOWN){
+                    BarCodeScanUtil.getInstance().saveScanResult();
+                }
             }
-        };
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    /**
+     * @param sourceAddress 地址 -> 回收物类型
+     * @param type 称重类型，开门前置回收还是关门后置回收
+     * @param w 重量
+     */
+    public static void setWeigh(String sourceAddress, String type, Double w){
+
+        if (ComConstant.METAL_RECYCLE_IC_ADDRESS.equals(sourceAddress)){
+            if (WeighTypeEnum.PREFIX_WEIGH.getCode().equals(type)){
+                // 金属开门前置称重
+                PREFIX_TOTAL_METAL_WEIGH = w;
+            }else if (WeighTypeEnum.SUFFIX_WEIGH.getCode().equals(type)){
+                // 金属关门后置称重
+                SUFIX_TOTAL_METAL_WEIGH = w;
+            }
+        }else if (ComConstant.PAPER_RECYCLE_IC_ADDRESS.equals(type)){
+            if (WeighTypeEnum.PREFIX_WEIGH.getCode().equals(type)){
+                // 纸类开门前置称重
+                PREFIX_TOTAL_PAPER_WEIGH = w;
+            }else if (WeighTypeEnum.SUFFIX_WEIGH.getCode().equals(type)){
+                // 纸类关门后置称重
+                SUFIX_TOTAL_PAPER_WEIGH = w;
+            }
+        }
+    }
+
+    public static double getValidWeigh(CategoryItem categoryItem){
+        if (CategoryEnum.METAL_REGENERANT.getId().equals(categoryItem.getItemId())){
+            // 计算有效金属重量
+            Log.d(TAG, "开门前金属重量: " + PREFIX_TOTAL_METAL_WEIGH + " 开门后金属重量: " + SUFIX_TOTAL_METAL_WEIGH);
+            return SUFIX_TOTAL_METAL_WEIGH - PREFIX_TOTAL_METAL_WEIGH;
+        }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(categoryItem.getItemId())){
+            // 计算有效纸类重量
+            Log.d(TAG, "开门前纸类重量: " + PREFIX_TOTAL_PAPER_WEIGH + " 开门后纸类重量: " + SUFIX_TOTAL_PAPER_WEIGH);
+            return SUFIX_TOTAL_PAPER_WEIGH - PREFIX_TOTAL_PAPER_WEIGH;
+        }
+        return 0.0;
     }
 }

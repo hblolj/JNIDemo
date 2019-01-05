@@ -11,9 +11,10 @@
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:orientation="horizontal"
-        android:background="#8A6D1B">
+        android:background="#d78504">
 
         <ImageView
+            android:src="@drawable/default_portrait"
             android:layout_marginLeft="20dp"
             android:layout_marginTop="5dp"
             android:layout_marginBottom="5dp"

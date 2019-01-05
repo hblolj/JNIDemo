@@ -1,7 +1,6 @@
 package com.example.ori.jnidemo.fragments;
 
 
-import android.support.v4.app.FragmentManager;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -37,9 +36,6 @@ public class HomeFragment extends com.example.ori.jnidemo.base.Fragment {
     public HomeFragment() {
     }
 
-    private static void show(FragmentManager fragmentManager){
-    }
-
     @Override
     protected int getContentLayoutId() {
         return R.layout.fragment_home;
@@ -47,13 +43,17 @@ public class HomeFragment extends com.example.ori.jnidemo.base.Fragment {
 
     @Override
     protected void initData() {
+        if (items.size() > 0){
+            return;
+        }
+
         items.add(new CategoryItem(CategoryEnum.METAL_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.PLASTIC_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.TEXTILE_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.PLASTIC_BOTTLE__REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.PLASTIC_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.TEXTILE_REGENERANT));
+        items.add(new CategoryItem(CategoryEnum.PLASTIC_BOTTLE_REGENERANT));
         items.add(new CategoryItem(CategoryEnum.PAPER_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.GLASS_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.HARMFUL_WASTE));
+//        items.add(new CategoryItem(CategoryEnum.GLASS_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.HARMFUL_WASTE));
 
         gvCategory.setNumColumns(4);
         gvCategory.setHorizontalSpacing(50);

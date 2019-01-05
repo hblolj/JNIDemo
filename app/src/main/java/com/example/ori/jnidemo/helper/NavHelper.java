@@ -34,6 +34,10 @@ public class NavHelper<T> {
         this.listener = listener;
     }
 
+    public Integer getTabCount(){
+        return tabs.size();
+    }
+
     /**
      * 执行点击菜单操作
      * @param menuId 菜单的 Id

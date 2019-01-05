@@ -1,12 +1,8 @@
 package com.example.ori.jnidemo.bean;
 
-import android.os.Handler;
-
 import com.example.ori.jnidemo.utils.CommonUtil;
-import com.example.ori.jnidemo.utils.OrderUtils;
 import com.example.ori.jnidemo.utils.StringUtil;
 import com.example.ori.jnidemo.utils.crc.CRCUtils;
-import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
 
 /**
  * @author: hblolj
@@ -43,6 +39,8 @@ public class Order {
     private String param;
 
     private String crc;
+
+    private String extra;
 
     public Order() {
     }
@@ -84,6 +82,14 @@ public class Order {
             calculateCRC();
         }
         return prefix + length + sourceAddress + targetAddress + actionCode + param + crc;
+    }
+
+    public String getExtra() {
+        return extra;
+    }
+
+    public void setExtra(String extra) {
+        this.extra = extra;
     }
 
     public String getPrefix() {

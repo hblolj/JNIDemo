@@ -6,7 +6,7 @@
     <string name="home">HomeFragment</string>
     <string name="recycle">RecycleFragment</string>
 
-    <string name="opening_recycle_door">小黄狗正在努力开箱</string>
+    <string name="opening_recycle_door">正在努力开箱</string>
 
     <string name="button_open_recycle_door">正在开箱......</string>
     <string name="button_open_recycle_door_faild">开箱失败......</string>

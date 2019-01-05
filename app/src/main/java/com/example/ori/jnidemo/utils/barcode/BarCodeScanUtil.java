@@ -18,7 +18,8 @@ public class BarCodeScanUtil {
 
     private static final String TAG = BarCodeScanUtil.class.getSimpleName();
 
-    public static final String DEVICE_NAME = "USB Barcode Scanner USB Barcode Scanner";
+//    public static final String DEVICE_NAME = "USB Barcode Scanner USB Barcode Scanner";
+    public static final String DEVICE_NAME = "二维条码枪 2D BarCode Scanner";
 
     private static Map<Integer, String> barCodeDictionary = new HashMap<>();
 
