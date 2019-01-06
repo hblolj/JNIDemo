@@ -91,6 +91,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         super.initData();
 
         // 初始化界面
+        tvRecycleNotice.setText(R.string.opening_recycle_door);
+        llCountDownTime.setVisibility(View.INVISIBLE);
+
         disableButton(btnRecycleComplate);
         btnRecycleComplate.setText(R.string.button_open_recycle_door);
         llBrifySummary.setVisibility(View.GONE);

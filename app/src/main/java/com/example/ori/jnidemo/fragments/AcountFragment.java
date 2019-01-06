@@ -81,6 +81,7 @@ public class AcountFragment extends Fragment {
         String sm = "获得环保金" + t.doubleValue() + "元";
         tvMoney.setText(sm);
         tvCountDownTime.setVisibility(View.VISIBLE);
+        llCountDownTime.setVisibility(View.VISIBLE);
 
         countDownTimer = new CountDownTimer(60000, 1000) {
             @Override
