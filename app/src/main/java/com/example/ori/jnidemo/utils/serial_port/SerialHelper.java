@@ -8,6 +8,7 @@ import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.bean.Order;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.interfaces.ComDataReceiverInterface;
+import com.example.ori.jnidemo.utils.ByteUtil;
 import com.example.ori.jnidemo.utils.CommonUtil;
 
 import org.greenrobot.eventbus.EventBus;
@@ -178,17 +179,25 @@ public class SerialHelper{
 				try
 				{
 					if (mInputStream == null) return;
-					byte[] buffer = new byte[512];
+					byte[] buffer = new byte[1];
 					int size = mInputStream.read(buffer);
-					if (size > 0){
-						ComBean ComRecData = new ComBean(sPort, buffer, size);
+					// 按单个字节做处理
+					byte[] bs = ByteUtil.handlerByte(buffer[0]);
+					if (bs != null){
+						String s = CommonUtil.bytesToHexString(bs);
+						ComBean ComRecData = new ComBean(sPort, s);
 						onDataReceived(ComRecData);
 					}
-					try {
-						Thread.sleep(50);//延时50ms
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+
+//					if (size > 0){
+//						ComBean ComRecData = new ComBean(sPort, buffer, size);
+//						onDataReceived(ComRecData);
+//					}
+//					try {
+//						Thread.sleep(50);//延时50ms
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
 				} catch (Throwable e) {
 					e.printStackTrace();
 					return;

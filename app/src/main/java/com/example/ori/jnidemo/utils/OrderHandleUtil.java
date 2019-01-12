@@ -31,20 +31,31 @@ public class OrderHandleUtil {
     private static final Integer PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY = 4;
     // 金属、纸类称重 - 应答
     private static final Integer WEIGH_REPLY = 5;
+    // 管理员回收门开门应答
+    private static final Integer ADMIN_OPEN_DOOR_REPLY = 6;
+    // 管理员回收门关门应答
+    private static final Integer ADMIN_CLOSE_DOOR_REPLY = 7;
 
     /**
      * 回收门开启结果延时任务
      */
     private static Runnable RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TASK = null;
 
-    private static final Long RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME = 10000L;
+    private static final Long RECYCLE_OPEN_DOOR_VALIDATE_RESULT_DELAY_TIME = 5000L;
 
     /**
-     * 塑料回收门关闭结果延时任务
+     * 回收门关闭结果延时任务
      */
     private static Runnable RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK = null;
 
     private static final Long RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TIME = 5000L;
+
+    /**
+     * 称重结果获取延时任务
+     */
+    private static Runnable WEIGH_VALIDATE_RESULT_DELAY_TASK = null;
+
+    private static final Long WEIGH_VALIDATE_RESULT_DELAY_TIME = 5000L;
 
     public static void handlerReceiveData(String receiveData, Handler myHandler){
 
@@ -106,7 +117,16 @@ public class OrderHandleUtil {
             // 强制回收指令 - 应答未收到
             Log.d(TAG, "强制回收指令应答未收到!");
         }else if (WEIGH_REPLY.equals(replyOrderType)){
-            Log.d(TAG, "称重指令应答未收到!");
+            Log.d(TAG, "称重指令应答未收到, 称重失败!" );
+            String rActionCode = CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+            String key = replyOrder.getSourceAddress() + rActionCode;
+            String param = replyOrder.getParam().toUpperCase();
+            String source = replyOrder.getSourceAddress().toUpperCase();
+            EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_WEIGH_RESULT, source + param + "FFFF"));
+        }else if (ADMIN_OPEN_DOOR_REPLY.equals(replyOrderType)){
+            Log.d(TAG, "管理员开门指令应答未收到!" );
+        }else if (ADMIN_CLOSE_DOOR_REPLY.equals(replyOrderType)){
+            Log.d(TAG, "管理员关门指令应答未收到!" );
         }
     }
 
@@ -151,7 +171,17 @@ public class OrderHandleUtil {
             // 4. 强制回收指令应答
             Log.d(TAG, "强制回收指令应答!");
         }else if (WEIGH_REPLY.equals(replyOrderType)){
-            Log.d(TAG, "称重指令应答!");
+            Log.d(TAG, "收到称重指令应答!");
+            // 收到应答后，开启一个延时任务(x 秒后没有收到对应的承重结果，做称重失败处理)
+            resetTask(WEIGH_VALIDATE_RESULT_DELAY_TASK, myHandler);
+
+            WEIGH_VALIDATE_RESULT_DELAY_TASK = getWeighValidateResultDelayTask(replyOrder);
+
+            myHandler.postDelayed(WEIGH_VALIDATE_RESULT_DELAY_TASK, WEIGH_VALIDATE_RESULT_DELAY_TIME);
+        }else if (ADMIN_OPEN_DOOR_REPLY.equals(replyOrderType)){
+            Log.d(TAG, "收到管理员开门指令应答!");
+        }else if (ADMIN_CLOSE_DOOR_REPLY.equals(replyOrderType)){
+            Log.d(TAG, "收到管理员关门指令应答!");
         }
     }
 
@@ -217,6 +247,7 @@ public class OrderHandleUtil {
             }
         }else if (ComConstant.WEIGH_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 金属、纸类等称重结果
+            removeTask(WEIGH_VALIDATE_RESULT_DELAY_TASK, myHandler);
             String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
             String param = replyOrder.getParam().toUpperCase();
             String result = param.substring(param.length() - 4);
@@ -285,6 +316,12 @@ public class OrderHandleUtil {
             return PLASTIC_BOTTLE_RECYCLE_FORCE_RECYCLE_REPLY;
         }else if (ComConstant.WEIGH_ACTION_CODE.equals(actionCode)){
             return WEIGH_REPLY;
+        }else if (ComConstant.OPEN_ADMIN_RECYCLE_ACTION_CODE.equals(actionCode)){
+            // 管理员开门指令应答
+            return ADMIN_OPEN_DOOR_REPLY;
+        }else if (ComConstant.CLOSE_ADMIN_RECYCLE_ACTION_CODE.equals(actionCode)){
+            // 管理员关门指令应答
+            return ADMIN_CLOSE_DOOR_REPLY;
         }
         return null;
     }
@@ -308,6 +345,21 @@ public class OrderHandleUtil {
                 String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
                 // 关门失败不需要分辨是正常关门还是强制回收前置关门
                 EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
+            }
+        };
+    }
+
+    private static Runnable getWeighValidateResultDelayTask(final Order replyOrder){
+        return new Runnable() {
+            @Override
+            public void run() {
+                // 收到称重指令应答后，计时 5 秒，如果还是没有收到称重结果，做称重失败处理！
+                String param = replyOrder.getParam().toUpperCase();
+                String source = replyOrder.getSourceAddress().toUpperCase();
+                String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
+
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
+                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_WEIGH_RESULT, source + param + "FFFF"));
             }
         };
     }

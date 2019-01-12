@@ -17,7 +17,6 @@ import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.interfaces.ComDataReceiverInterface;
-import com.example.ori.jnidemo.utils.CommonUtil;
 import com.example.ori.jnidemo.utils.OrderHandleUtil;
 import com.example.ori.jnidemo.utils.OrderUtils;
 import com.example.ori.jnidemo.utils.StringUtil;
@@ -263,8 +262,8 @@ public class MainActivity extends AppCompatActivity implements ComDataReceiverIn
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
-                OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
+//                String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
+//                OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
             }
         }).start();
     }

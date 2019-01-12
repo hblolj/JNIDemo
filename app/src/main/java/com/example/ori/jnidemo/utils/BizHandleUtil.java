@@ -145,10 +145,10 @@ public class BizHandleUtil {
 
             Integer iWeigh = Integer.parseInt(weigh, 16);
             Log.d(TAG, "十六进制重量: " + weigh + " 转换后的十进制重量: " + iWeigh);
-            BigDecimal dWeigh = new BigDecimal(iWeigh / 100.0);
+            BigDecimal dWeigh = new BigDecimal(iWeigh).divide(new BigDecimal( "100"));
 //            Float dWeigh = (float)iWeigh / 100;
-            Log.d(TAG, "计算后的公斤数: " + dWeigh.doubleValue());
-            HomeActivity.setWeigh(source, type, dWeigh.doubleValue());
+            Log.d(TAG, "计算后的公斤数: " + dWeigh);
+            HomeActivity.setWeigh(source, type, dWeigh);
             if (WeighTypeEnum.PREFIX_WEIGH.getCode().equals(type)){
                 // 开门前置称重
                 EventBus.getDefault().post(ActionResultEnum.PREFIX_WEIGH_SUCCESS);
@@ -157,8 +157,11 @@ public class BizHandleUtil {
                 EventBus.getDefault().post(ActionResultEnum.SUFFIX_WEIGH_SUCCESS);
             }
         }else {
-            // 称重失败
-            EventBus.getDefault().post(new MessageEvent("称重模块异常，请联系管理员!"));
+            // 称重失败 前置称重失败，还是后置称重失败
+            // 前置称重失败，当前界面应该卡在开门中
+            // 后置称重失败，当前界面应该卡在
+            // TODO: 2019/1/9 待定
+            EventBus.getDefault().post(new MessageEvent(null, "称重模块异常，请联系管理员!", MessageEvent.MESSAGE_TYPE_NOTICE));
         }
     }
 

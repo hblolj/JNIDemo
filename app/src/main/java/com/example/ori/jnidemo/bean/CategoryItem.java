@@ -2,6 +2,8 @@ package com.example.ori.jnidemo.bean;
 
 import com.example.ori.jnidemo.enums.CategoryEnum;
 
+import java.math.BigDecimal;
+
 /**
  * @author: hblolj
  * @date: 2018/12/25 19:47
@@ -17,7 +19,7 @@ public class CategoryItem {
 
     private String unitPrice;
 
-    private Double dPrice;
+    private BigDecimal dPrice;
 
     private Boolean publicGood;
 
@@ -113,11 +115,11 @@ public class CategoryItem {
         this.itemId = itemId;
     }
 
-    public Double getdPrice() {
+    public BigDecimal getdPrice() {
         return dPrice;
     }
 
-    public void setdPrice(Double dPrice) {
+    public void setdPrice(BigDecimal dPrice) {
         this.dPrice = dPrice;
     }
 

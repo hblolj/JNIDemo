@@ -1,10 +1,15 @@
 package com.example.ori.jnidemo;
 
+import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
 
 import com.example.ori.jnidemo.base.Activity;
 import com.example.ori.jnidemo.base.Fragment;
@@ -19,28 +24,39 @@ import com.example.ori.jnidemo.enums.ActionResultEnum;
 import com.example.ori.jnidemo.enums.CategoryEnum;
 import com.example.ori.jnidemo.enums.WeighTypeEnum;
 import com.example.ori.jnidemo.fragments.AcountFragment;
+import com.example.ori.jnidemo.fragments.AdminFragment;
 import com.example.ori.jnidemo.fragments.HomeFragment;
 import com.example.ori.jnidemo.fragments.RecycleFragment;
 import com.example.ori.jnidemo.helper.NavHelper;
 import com.example.ori.jnidemo.interfaces.ComDataReceiverInterface;
 import com.example.ori.jnidemo.utils.BizHandleUtil;
-import com.example.ori.jnidemo.utils.CommonUtil;
 import com.example.ori.jnidemo.utils.OrderHandleUtil;
 import com.example.ori.jnidemo.utils.OrderUtils;
 import com.example.ori.jnidemo.utils.StringUtil;
 import com.example.ori.jnidemo.utils.ToastHelper;
 import com.example.ori.jnidemo.utils.barcode.BarCodeScanUtil;
 import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
+import com.ys.myapi.MyManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
 import android_serialport_api.SerialPortFinder;
+import butterknife.BindView;
+import butterknife.OnClick;
 
 public class HomeActivity extends Activity implements NavHelper.OnTabChangedListener<Integer>, ComDataReceiverInterface {
 
     private static final String TAG = HomeActivity.class.getSimpleName();
+
+    private static final Integer ADMIN_MODEL = 1;
+
+    private static final Integer USER_MODEL = 2;
 
     // 回收机中塑料瓶总数
     public static Integer TOTAL_PLASTIC_BOTTLE_NUM = 0;
@@ -49,16 +65,24 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     // 一次开关门之间回收的瓶子数量
     public static Integer CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM = 0;
     // 回收机中金属总重量
-    public static Double PREFIX_TOTAL_METAL_WEIGH;
-    public static Double SUFIX_TOTAL_METAL_WEIGH;
+    public static BigDecimal TOTAL_METAL_WEIGH = new BigDecimal("0");
+    public static BigDecimal PREFIX_TOTAL_METAL_WEIGH = new BigDecimal("0");
+    public static BigDecimal SUFIX_TOTAL_METAL_WEIGH = new BigDecimal("0");
     // 回收机中纸类总重量
-    public static Double PREFIX_TOTAL_PAPER_WEIGH;
-    public static Double SUFIX_TOTAL_PAPER_WEIGH;
+    public static BigDecimal TOTAL_PAPER_WEIGH = new BigDecimal("0");
+    public static BigDecimal PREFIX_TOTAL_PAPER_WEIGH = new BigDecimal("0");
+    public static BigDecimal SUFIX_TOTAL_PAPER_WEIGH = new BigDecimal("0");
 
+    private List<CategoryItem> items = new ArrayList<>();
 
     public NavHelper<Integer> navHelper;
 
     private SerialHelper comHelper;
+
+    private MyManager myManager;
+
+    @BindView(R.id.btn_admin)
+    Button btnAdmin;
 
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
@@ -95,8 +119,27 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     }
 
     @Override
+    protected void initWindows() {
+        super.initWindows();
+        //设置屏幕为横屏
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);//设置成全屏模式
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    }
+
+    @Override
     protected void initWidget() {
+
         super.initWidget();
+
+//        if (myManager == null){
+//            myManager = MyManager.getInstance(this);
+//            Intent intent = new Intent(this, WatchDogService.class);
+//            startService(intent);
+//        }
+
+
+        btnAdmin.setTag(ADMIN_MODEL);
+
         // 初始化切换到 HomeFragment 开始、投递结束
         // 投递回收 Fragment 投递中
         // 投递成功 Fragment +1
@@ -105,19 +148,44 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         navHelper
                 .add(HomeFragment.FRAGMENT_ID, new NavHelper.Tab<>(HomeFragment.class, HomeFragment.FRAGMENT_ID))
                 .add(RecycleFragment.FRAGMENT_ID, new NavHelper.Tab<>(RecycleFragment.class, RecycleFragment.FRAGMENT_ID))
-                .add(AcountFragment.FRAGMENT_ID, new NavHelper.Tab<>(AcountFragment.class, AcountFragment.FRAGMENT_ID));
+                .add(AcountFragment.FRAGMENT_ID, new NavHelper.Tab<>(AcountFragment.class, AcountFragment.FRAGMENT_ID))
+                .add(AdminFragment.FRAGMENT_ID, new NavHelper.Tab<>(AdminFragment.class, AdminFragment.FRAGMENT_ID));
     }
 
     @Override
     protected void initData() {
         super.initData();
+
+        if (items.size() == 0){
+            items.add(new CategoryItem(CategoryEnum.METAL_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.PLASTIC_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.TEXTILE_REGENERANT));
+            items.add(new CategoryItem(CategoryEnum.PLASTIC_BOTTLE_REGENERANT));
+            items.add(new CategoryItem(CategoryEnum.PAPER_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.GLASS_REGENERANT));
+//        items.add(new CategoryItem(CategoryEnum.HARMFUL_WASTE));
+        }
+
         for (int id : InputDevice.getDeviceIds()) {
             String name = InputDevice.getDevice(id).getName().trim();
             Log.d(TAG, "DeviceNames: " + name);
         }
         // 初始化点击
-        navHelper.performClickMenu(HomeFragment.FRAGMENT_ID);
+        onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, items));
         reConnectionSerial();
+    }
+
+    @OnClick(R.id.btn_admin)
+    public void go2AdminPager(){
+        if (ADMIN_MODEL.equals(btnAdmin.getTag())){
+            btnAdmin.setText("我是用户");
+            btnAdmin.setTag(USER_MODEL);
+            onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AdminFragment.FRAGMENT_ID, items));
+        }else if (USER_MODEL.equals(btnAdmin.getTag())){
+            btnAdmin.setText("我是管理员");
+            btnAdmin.setTag(ADMIN_MODEL);
+            onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, items));
+        }
     }
 
     /**
@@ -248,7 +316,7 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
      */
     @Override
     public void onDataReceived(ComBean comRecData) {
-        String receiverData = CommonUtil.bytesToHexString(comRecData.getbRec()).replace(" ", "").toUpperCase();
+        String receiverData = comRecData.getsRec().toUpperCase();
         OrderHandleUtil.handlerReceiveData(receiverData, myHandler);
     }
 
@@ -271,12 +339,29 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         return super.dispatchKeyEvent(event);
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        //判断是否有焦点
+        if(hasFocus && Build.VERSION.SDK_INT >= 19){
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            |View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            |View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            |View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            |View.SYSTEM_UI_FLAG_FULLSCREEN
+                            |View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+        }
+    }
+
     /**
      * @param sourceAddress 地址 -> 回收物类型
      * @param type 称重类型，开门前置回收还是关门后置回收
      * @param w 重量
      */
-    public static void setWeigh(String sourceAddress, String type, Double w){
+    public static void setWeigh(String sourceAddress, String type, BigDecimal w){
 
         if (ComConstant.METAL_RECYCLE_IC_ADDRESS.equals(sourceAddress)){
             if (WeighTypeEnum.PREFIX_WEIGH.getCode().equals(type)){
@@ -286,7 +371,7 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
                 // 金属关门后置称重
                 SUFIX_TOTAL_METAL_WEIGH = w;
             }
-        }else if (ComConstant.PAPER_RECYCLE_IC_ADDRESS.equals(type)){
+        }else if (ComConstant.PAPER_RECYCLE_IC_ADDRESS.equals(sourceAddress)){
             if (WeighTypeEnum.PREFIX_WEIGH.getCode().equals(type)){
                 // 纸类开门前置称重
                 PREFIX_TOTAL_PAPER_WEIGH = w;
@@ -297,16 +382,53 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         }
     }
 
-    public static double getValidWeigh(CategoryItem categoryItem){
+    public static BigDecimal getValidWeigh(CategoryItem categoryItem){
         if (CategoryEnum.METAL_REGENERANT.getId().equals(categoryItem.getItemId())){
             // 计算有效金属重量
             Log.d(TAG, "开门前金属重量: " + PREFIX_TOTAL_METAL_WEIGH + " 开门后金属重量: " + SUFIX_TOTAL_METAL_WEIGH);
-            return SUFIX_TOTAL_METAL_WEIGH - PREFIX_TOTAL_METAL_WEIGH;
+            BigDecimal result = SUFIX_TOTAL_METAL_WEIGH.subtract(PREFIX_TOTAL_METAL_WEIGH);
+            TOTAL_METAL_WEIGH = TOTAL_METAL_WEIGH.add(result);
+            return result;
         }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(categoryItem.getItemId())){
             // 计算有效纸类重量
             Log.d(TAG, "开门前纸类重量: " + PREFIX_TOTAL_PAPER_WEIGH + " 开门后纸类重量: " + SUFIX_TOTAL_PAPER_WEIGH);
-            return SUFIX_TOTAL_PAPER_WEIGH - PREFIX_TOTAL_PAPER_WEIGH;
+            BigDecimal result = SUFIX_TOTAL_PAPER_WEIGH.subtract(PREFIX_TOTAL_PAPER_WEIGH);
+            TOTAL_PAPER_WEIGH = TOTAL_PAPER_WEIGH.add(result);
+            return result;
         }
-        return 0.0;
+        return new BigDecimal("0");
+    }
+
+    public static String getDataByCategoryItem(CategoryItem item){
+        if (CategoryEnum.METAL_REGENERANT.getId().equals(item.getItemId())){
+            // 金属
+            return HomeActivity.TOTAL_METAL_WEIGH + " " + item.getUnit();
+        }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(item.getItemId())){
+            // 纸类
+            return HomeActivity.TOTAL_PAPER_WEIGH + " " + item.getUnit();
+        }else if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(item.getItemId())){
+            // 塑料瓶
+            return TOTAL_PLASTIC_BOTTLE_NUM + " " + item.getUnit();
+        }
+        return "";
+    }
+
+    /**
+     * 按类型清除数据
+     * @param item
+     */
+    public static void cleanDataByCategoryItem(CategoryItem item){
+        if (CategoryEnum.METAL_REGENERANT.getId().equals(item.getItemId())){
+            // 金属
+            TOTAL_METAL_WEIGH = new BigDecimal("0");
+        }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(item.getItemId())){
+            // 纸类
+            TOTAL_PAPER_WEIGH = new BigDecimal("0");
+        }else if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(item.getItemId())){
+            // 塑料瓶
+            TOTAL_PLASTIC_BOTTLE_NUM = 0;
+            TOTAL_VALID_PLASTIC_BOTTLE_NUM = 0;
+            CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM = 0;
+        }
     }
 }

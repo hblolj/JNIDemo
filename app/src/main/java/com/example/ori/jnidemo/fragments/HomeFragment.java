@@ -9,7 +9,6 @@ import com.example.ori.jnidemo.R;
 import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
 import com.example.ori.jnidemo.dapter.CategoryAdapter;
-import com.example.ori.jnidemo.enums.CategoryEnum;
 import com.example.ori.jnidemo.utils.ToastHelper;
 
 import org.greenrobot.eventbus.EventBus;
@@ -43,18 +42,6 @@ public class HomeFragment extends com.example.ori.jnidemo.base.Fragment {
 
     @Override
     protected void initData() {
-        if (items.size() > 0){
-            return;
-        }
-
-        items.add(new CategoryItem(CategoryEnum.METAL_REGENERANT));
-//        items.add(new CategoryItem(CategoryEnum.PLASTIC_REGENERANT));
-//        items.add(new CategoryItem(CategoryEnum.TEXTILE_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.PLASTIC_BOTTLE_REGENERANT));
-        items.add(new CategoryItem(CategoryEnum.PAPER_REGENERANT));
-//        items.add(new CategoryItem(CategoryEnum.GLASS_REGENERANT));
-//        items.add(new CategoryItem(CategoryEnum.HARMFUL_WASTE));
-
         gvCategory.setNumColumns(4);
         gvCategory.setHorizontalSpacing(50);
         gvCategory.setVerticalSpacing(40);
@@ -72,6 +59,8 @@ public class HomeFragment extends com.example.ori.jnidemo.base.Fragment {
 
     @Override
     public void setData(Object data) {
-
+        if (data != null){
+            items = (List<CategoryItem>) data;
+        }
     }
 }

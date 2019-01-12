@@ -260,7 +260,7 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
      * 开门失败，包括了塑料瓶、金属、纸类
      */
     private void openDoorFaild(){
-        tvRecycleNotice.setText(R.string.close_door_faild);
+        tvRecycleNotice.setText(R.string.open_door_faild);
         btnRecycleComplate.setText(R.string.button_open_recycle_door_faild);
         disableButton(btnRecycleComplate);
     }

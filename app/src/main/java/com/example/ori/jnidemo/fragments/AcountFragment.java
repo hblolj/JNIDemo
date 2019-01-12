@@ -69,16 +69,16 @@ public class AcountFragment extends Fragment {
         if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(mCurrentItem.getItemId())){
             // 瓶子
             s = mCurrentItem.getCategoryName() + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
-            t = new BigDecimal(HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM * mCurrentItem.getdPrice());
+            t = mCurrentItem.getdPrice().multiply(new BigDecimal(HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM));
         }else {
             // 金属、纸类 做一下减法
-            double validWeigh = HomeActivity.getValidWeigh(mCurrentItem);
+            BigDecimal validWeigh = HomeActivity.getValidWeigh(mCurrentItem);
             s = mCurrentItem.getCategoryName() + validWeigh + mCurrentItem.getUnit();
-            t = new BigDecimal(validWeigh * mCurrentItem.getdPrice());
+            t = mCurrentItem.getdPrice().multiply(validWeigh);
         }
         tvList.setText(s);
 
-        String sm = "获得环保金" + t.doubleValue() + "元";
+        String sm = "获得环保金" + t + "元";
         tvMoney.setText(sm);
         tvCountDownTime.setVisibility(View.VISIBLE);
         llCountDownTime.setVisibility(View.VISIBLE);
@@ -116,8 +116,7 @@ public class AcountFragment extends Fragment {
         countDownTimer.cancel();
         tvCountDownTime.setVisibility(View.GONE);
         llCountDownTime.setVisibility(View.INVISIBLE);
-        // 跳转到 总结算页面(所有种类总收益)
-        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, ""));
+        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, null));
     }
 
     @OnClick(R.id.btn_continue_recycle)
@@ -127,7 +126,7 @@ public class AcountFragment extends Fragment {
         tvCountDownTime.setVisibility(View.GONE);
         llCountDownTime.setVisibility(View.INVISIBLE);
         // 跳转到 HomeFragment
-        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, ""));
+        EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, null));
     }
 
 }
