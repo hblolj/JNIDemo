@@ -7,6 +7,7 @@ import com.example.ori.jnidemo.HomeActivity;
 import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.enums.ActionResultEnum;
+import com.example.ori.jnidemo.enums.CloseDoorResultType;
 import com.example.ori.jnidemo.enums.CloseDoorType;
 import com.example.ori.jnidemo.enums.RecycleBriefSummaryTypeEnum;
 import com.example.ori.jnidemo.enums.WeighTypeEnum;
@@ -59,26 +60,41 @@ public class BizHandleUtil {
      */
     public static void handleCloseDoorResult(MessageEvent event, SerialHelper comHelper, Handler myHandler) {
         SerialHelper.waitResults.remove(event.getKey());
-        Boolean closeDoorResult = (Boolean) event.getMessage();
-        if (closeDoorResult){
+        String closeDoorResult = (String) event.getMessage();
+        String closeDoorType = (String) event.getExtra();
+
+        if (CloseDoorResultType.SUCCESS.getTypeId().equals(closeDoorResult)){
             // 关门成功
             BarCodeScanUtil.getInstance().clearData();
-            Integer closeDoorType = (Integer) event.getExtra();
 
             if (CloseDoorType.FORCE_RECYCLE_PREFIX.getTypeId().equals(closeDoorType)){
                 // 强制回收前置关门结果
                 EventBus.getDefault().post(ActionResultEnum.PREFIX_CLOSE_DOOR_SUCCESS);
-                // 发送强制回收指令
-                OrderUtils.sendNeedResponseOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
-                        ComConstant.FORCE_RECYCLE_ACTION_CODE, null, myHandler, 1);
                 return;
             }else if (CloseDoorType.WEIGH_PREFIX.getTypeId().equals(closeDoorType)){
                 // 称重前置关门成功
                 EventBus.getDefault().post(ActionResultEnum.WEIGH_PREFIX_CLOSE_DOOR_SUCCESS);
                 return;
             }
+            EventBus.getDefault().post(ActionResultEnum.CLOSE_DOOR_SUCCESS);
+        }else if (CloseDoorResultType.FAILD.getTypeId().equals(closeDoorResult)){
+            // 关门失败
+            EventBus.getDefault().post(ActionResultEnum.CLOSE_DOOR_FAILD);
+        }else if (CloseDoorResultType.EXCEPTION.getTypeId().equals(closeDoorResult)){
+            // 关门异常
+            if (CloseDoorType.NORMAL.getTypeId().equals(closeDoorType)){
+                // 正常关门的关门异常 -> 用户点击投递完成按钮 or 关门倒计时触发 -> 重置按钮为可点击 + 重置关门倒计时
+                EventBus.getDefault().post(ActionResultEnum.NORMAL_CLOSE_DOOR_EXCEPTION);
+
+            }else if (CloseDoorType.FORCE_RECYCLE_PREFIX.getTypeId().equals(closeDoorType)){
+                // 强制回收前置关门异常 -> 重置强制回收倒计时
+                EventBus.getDefault().post(ActionResultEnum.PREFIX_NORMAL_CLOSE_DOOR_EXCEPTION);
+
+            }else if (CloseDoorType.WEIGH_PREFIX.getTypeId().equals(closeDoorType)){
+                // 称重前置关门异常 -> 不可能出现，出现当做关门失败处理
+                EventBus.getDefault().post(ActionResultEnum.CLOSE_DOOR_FAILD );
+            }
         }
-        EventBus.getDefault().post(closeDoorResult ? ActionResultEnum.CLOSE_DOOR_SUCCESS : ActionResultEnum.CLOSE_DOOR_FAILD);
     }
 
     /**
@@ -94,7 +110,9 @@ public class BizHandleUtil {
             startRecycleComplteConfirmDelayTask(myHandler);
         }
         // 返回扫码结果给 IC
-        OrderUtils.sendOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS, ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE, scanResult ? "FFFF" : "0000", myHandler, 1);
+        // scanResult ? "FFFF" : "0000"
+        String result = scanResult ? "FFFF" : "0000";
+        OrderUtils.sendOrder(comHelper, ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS, ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE, result, myHandler, 1);
         // 不管扫码成功还是失败，界面上都是设置投递完成按钮为不可点击状态
         EventBus.getDefault().post(scanResult ? ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_SUCCESS : ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_FAILD);
     }

@@ -23,14 +23,15 @@
 
         <TextView
             android:id="@+id/tv_recycle_notice"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
             android:textStyle="bold"
-            android:layout_marginTop="50dp"
             android:layout_gravity="center"
             android:textSize="25sp"
             android:gravity="center"
             android:text="@string/opening_recycle_door"
             android:layout_width="wrap_content"
-            android:layout_height="50dp" />
+            android:layout_height="80dp" />
 
         <ImageView
             android:background="@android:color/darker_gray"
@@ -61,7 +62,7 @@
             android:textSize="30sp"
             android:gravity="center"
             android:text="已投递 1 个"
-            android:layout_width="200dp"
+            android:layout_width="wrap_content"
             android:layout_height="50dp" />
         
         <TextView
@@ -69,7 +70,7 @@
             android:textSize="20sp"
             android:layout_gravity="center"
             android:gravity="center"
-            android:text="还可继续投递，铁血狼人一次只能投递一个饮料瓶哦!"
+            android:text="@string/brify_summary_notice"
             android:layout_width="match_parent"
             android:layout_height="30dp" />
     </LinearLayout>

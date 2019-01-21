@@ -13,10 +13,12 @@ import com.example.ori.jnidemo.R;
 import com.example.ori.jnidemo.bean.ActionMessageEvent;
 import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
+import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.constant.ComConstant;
 import com.example.ori.jnidemo.enums.ActionResultEnum;
 import com.example.ori.jnidemo.enums.CategoryEnum;
 import com.example.ori.jnidemo.enums.WeighTypeEnum;
+import com.example.ori.jnidemo.utils.LanguageUtil;
 import com.example.ori.jnidemo.utils.StringUtil;
 
 import org.greenrobot.eventbus.EventBus;
@@ -39,6 +41,13 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
     // 塑料瓶回收门关闭时间默认设为 30 秒
     public static final Integer PLASTIC_BOTTLE_CLOSE_DOOR_COUNT_DOWN_TIME = 30000;
+
+    public static final Integer PLASTIC_BOTTLE_FORCE_RECYCLE_COUNT_DOWN_TIME = 60000;
+
+    public static final Integer COM_BACK_HOME_PAGE_COUNT_DOWN_TIME = 10000;
+
+    private static String COMBACK_HOME_PAGE_NOTICE;
+
     // 金属、纸类回收门关闭时间默认设为 60 秒
     public static final Integer OTHER_CLOSE_DOOR_COUNT_DOWN_TIME = 60000;
 
@@ -66,10 +75,12 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
     @BindView(R.id.tv_curren_recycle_validate_count)
     TextView tvCurrenRecycleValidateCount;
-
+    // 关门倒计时
     private CountDownTimer closeDoorCountDownTimer;
-
+    // 强制回收倒计时
     private CountDownTimer forceRecycleCountDownTimer;
+    // 返回首页倒计时
+    private CountDownTimer comBackHomePageCountDownTimer;
 
     public RecycleFragment() {
         // Required empty public constructor
@@ -83,7 +94,6 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     @Override
     protected void initWidget(View root) {
         super.initWidget(root);
-        openingDoor();
     }
 
     @Override
@@ -91,18 +101,17 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         super.initData();
 
         // 初始化界面
-        tvRecycleNotice.setText(R.string.opening_recycle_door);
-        llCountDownTime.setVisibility(View.INVISIBLE);
-
-        disableButton(btnRecycleComplate);
-        btnRecycleComplate.setText(R.string.button_open_recycle_door);
-        llBrifySummary.setVisibility(View.GONE);
-        llRecycle.setVisibility(View.VISIBLE);
+        initView();
 
         String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
         if (StringUtil.isEmpty(address)){
-            // TODO: 2019/1/2 尚未支持的回收类型
-            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            String notice;
+            if (LanguageUtil.isChinese()){
+                notice = "尚未支持的回收类型: " + mCurrentItem.getCategoryName();
+            }else {
+                notice = "Unrecognized recycling type: " + mCurrentItem.getCategoryName();
+            }
+            EventBus.getDefault().post(new MessageEvent(null, notice, MessageEvent.MESSAGE_TYPE_NOTICE));
             return;
         }
 
@@ -116,7 +125,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         // 初始化关门倒计时
         initCloseDoorCountDownTimer();
         // 初始化强制回收倒计时
-        initForceRecycleCountDownTimer();
+        initForceRecycleCountDownTimer(PLASTIC_BOTTLE_FORCE_RECYCLE_COUNT_DOWN_TIME);
+        // 初始化返回首页倒计时
+        initComBackHomePageCountDownTimer();
 
         // 饮料瓶 直接开门
         // 玻璃、有害垃圾 直接开门
@@ -151,8 +162,13 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
         String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
         if (StringUtil.isEmpty(address)){
-            // TODO: 2019/1/2 尚未支持的回收类型
-            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            String notice;
+            if (LanguageUtil.isChinese()){
+                notice = "尚未支持的回收类型: " + mCurrentItem.getCategoryName();
+            }else {
+                notice = "Unrecognized recycling type: " + mCurrentItem.getCategoryName();
+            }
+            EventBus.getDefault().post(new MessageEvent(null, notice, MessageEvent.MESSAGE_TYPE_NOTICE));
             return;
         }
 
@@ -167,9 +183,15 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
             prefixCloseDoorSuccess();
         }else if (ActionResultEnum.CLOSE_DOOR_FAILD.equals(result)){
             closeDoorFaild();
+        }else if (ActionResultEnum.NORMAL_CLOSE_DOOR_EXCEPTION.equals(result)){
+            // 正常关门的关门异常 -> 用户点击投递完成按钮 or 关门倒计时触发 -> 重置按钮为可点击 + 重置关门倒计时
+            nomarlCloseDoorException();
+        }else if (ActionResultEnum.PREFIX_NORMAL_CLOSE_DOOR_EXCEPTION.equals(result)){
+            // 强制回收前置关门异常 -> 重置强制回收倒计时
+            prefixCloseDoorException();
         }else if (ActionResultEnum.REFRESH_CLOSE_DOOR_COUNT_DOWN_TIME.equals(result)){
             // 刷新关门倒计时
-            resetTimer(closeDoorCountDownTimer, null);
+            resetTimer(closeDoorCountDownTimer);
         }else if (ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_SUCCESS.equals(result)){
             // 塑料瓶扫码校验成功
             barCodeValidateSuccess();
@@ -207,13 +229,42 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         }
     }
 
+    /**
+     * 强制回收前置关门异常
+     */
+    private void prefixCloseDoorException() {
+        // 重置强制回收倒计时
+        tvRecycleNotice.setText(R.string.button_close_recycle_door_exception);
+
+        initForceRecycleCountDownTimer(10000);
+        resetTimer(forceRecycleCountDownTimer);
+    }
+
+    /**
+     * 正常关门异常
+     */
+    private void nomarlCloseDoorException() {
+        // 重置按钮为可点击 + 重置关门倒计时
+        tvCountDownTime.setVisibility(View.VISIBLE);
+        llCountDownTime.setVisibility(View.VISIBLE);
+        tvRecycleNotice.setText(R.string.button_close_recycle_door_exception);
+        enableButton(btnRecycleComplate);
+        resetTimer(closeDoorCountDownTimer);
+    }
+
     private void showView(LinearLayout showll, LinearLayout hidell){
         showll.setVisibility(View.VISIBLE);
         hidell.setVisibility(View.GONE);
     }
 
     private void calcCurrentNum(){
-        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
+        String unit = mCurrentItem.getUnit().substring(mCurrentItem.getUnit().indexOf("/") + 1);
+        String s;
+        if (LanguageUtil.isChinese()){
+            s = "已投递 " + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + " " + unit;
+        }else {
+            s = "Has Delivered " + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + " " + unit;
+        }
         tvCurrenRecycleValidateCount.setText(s);
         enableButton(btnRecycleComplate);
     }
@@ -227,22 +278,23 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         tvCountDownTime.setVisibility(View.GONE);
         llCountDownTime.setVisibility(View.INVISIBLE);
         // 2. 延时关门任务开启
-        resetTimer(closeDoorCountDownTimer, null);
+        resetTimer(closeDoorCountDownTimer);
         // 显示结算页面
-        String s = "已投递" + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
-        tvCurrenRecycleValidateCount.setText(s);
-        // 投递完成按钮置为可点击状态
-        enableButton(btnRecycleComplate);
+        calcCurrentNum();
         showView(llBrifySummary, llRecycle);
     }
 
     /**
      * 开门中
      */
-    private void openingDoor() {
+    private void initView() {
         tvRecycleNotice.setText(R.string.opening_recycle_door);
         btnRecycleComplate.setText(R.string.button_open_recycle_door);
-        enableButton(btnRecycleComplate);
+        disableButton(btnRecycleComplate);
+
+        llCountDownTime.setVisibility(View.INVISIBLE);
+        llBrifySummary.setVisibility(View.GONE);
+        llRecycle.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -253,7 +305,7 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         btnRecycleComplate.setText(R.string.button_recycle_complate);
         enableButton(btnRecycleComplate);
         // 倒计时开始 -> 显示 + 计时
-        resetTimer(closeDoorCountDownTimer, null);
+        resetTimer(closeDoorCountDownTimer);
     }
 
     /**
@@ -263,6 +315,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         tvRecycleNotice.setText(R.string.open_door_faild);
         btnRecycleComplate.setText(R.string.button_open_recycle_door_faild);
         disableButton(btnRecycleComplate);
+        // 开门失败设置倒计时，倒计时完毕跳转会首页
+        COMBACK_HOME_PAGE_NOTICE = btnRecycleComplate.getText().toString();
+        resetTimer(comBackHomePageCountDownTimer);
     }
 
     /**
@@ -284,6 +339,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         tvRecycleNotice.setText(R.string.close_door_faild);
         btnRecycleComplate.setText(R.string.button_close_recycle_door_faild);
         disableButton(btnRecycleComplate);
+        // 关门失败设置倒计时，倒计时完毕跳转会首页
+        COMBACK_HOME_PAGE_NOTICE = btnRecycleComplate.getText().toString();
+        resetTimer(comBackHomePageCountDownTimer);
     }
 
     /**
@@ -292,6 +350,9 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     private void prefixCloseDoorSuccess(){
         // 投递完成按钮置为不可点击
         disableButton(btnRecycleComplate);
+        // 发送强制回收指令
+        EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
+                ComConstant.FORCE_RECYCLE_ACTION_CODE, null, 1, true));
     }
 
     /**
@@ -300,23 +361,26 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     private void barCodeValidateSuccess(){
         // 投递完成按钮置为不可点击, 重置关门倒计时
         disableButton(btnRecycleComplate);
-        resetTimer(closeDoorCountDownTimer, null);
+        resetTimer(closeDoorCountDownTimer);
     }
 
     /**
      * 条码扫描校验失败
      */
     private void barCodeValidateFaild(){
-        llRecycle.setVisibility(View.VISIBLE);
-        llBrifySummary.setVisibility(View.GONE);
         // 投递完成按钮置为不可点击
         disableButton(btnRecycleComplate);
+
+        llRecycle.setVisibility(View.VISIBLE);
+        llBrifySummary.setVisibility(View.GONE);
+
         // 提示用户取回物品
         tvRecycleNotice.setText(R.string.barcode_validate_faild);
         // 延时关门任务如何处理
         closeDoorCountDownTimer.cancel();
         // 开启强制回收延时任务，延时触发，执行强制回收 -> 倒计时
-        resetTimer(forceRecycleCountDownTimer, null);
+        initForceRecycleCountDownTimer(PLASTIC_BOTTLE_FORCE_RECYCLE_COUNT_DOWN_TIME);
+        resetTimer(forceRecycleCountDownTimer);
     }
 
     /**
@@ -332,8 +396,13 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         // 动态地址
         String address = getAddressCodeByCategoryItemId(mCurrentItem.getItemId());
         if (StringUtil.isEmpty(address)){
-            // TODO: 2019/1/2 尚未支持的回收类型
-            Log.d(TAG, "尚未支持的回收类型: " + mCurrentItem.getCategoryName());
+            String notice;
+            if (LanguageUtil.isChinese()){
+                notice = "尚未支持的回收类型: " + mCurrentItem.getCategoryName();
+            }else {
+                notice = "Unrecognized recycling type: " + mCurrentItem.getCategoryName();
+            }
+            EventBus.getDefault().post(new MessageEvent(null, notice, MessageEvent.MESSAGE_TYPE_NOTICE));
             return;
         }
         // 正常业务关门 -> 塑料瓶
@@ -347,10 +416,10 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
 
     private void initCloseDoorCountDownTimer() {
         if (closeDoorCountDownTimer == null){
-            closeDoorCountDownTimer = new CountDownTimer(tempTimer, 1000) {
+            closeDoorCountDownTimer = new CountDownTimer(tempTimer + 1100, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
-                    String s = String.valueOf(millisUntilFinished / 1000) + "秒";
+                    String s = String.valueOf((millisUntilFinished / 1000) - 1) + "S";
                     tvCountDownTime.setText(s);
                 }
 
@@ -363,34 +432,64 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
         }
     }
 
-    private void initForceRecycleCountDownTimer(){
-        if (forceRecycleCountDownTimer == null){
-            forceRecycleCountDownTimer = new CountDownTimer(60000L, 1000) {
+    private void initForceRecycleCountDownTimer(Integer t){
+        if (forceRecycleCountDownTimer != null){
+            forceRecycleCountDownTimer.cancel();
+            forceRecycleCountDownTimer = null;
+        }
+        forceRecycleCountDownTimer = new CountDownTimer(t + 1100, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                String s = String.valueOf((millisUntilFinished / 1000) - 1) + "S";
+                tvCountDownTime.setText(s);
+            }
+
+            @Override
+            public void onFinish() {
+                forceRecycleCountDownTimer.cancel();
+                tvCountDownTime.setVisibility(View.GONE);
+                llCountDownTime.setVisibility(View.INVISIBLE);
+                // 强制回收前置关门指令
+                EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
+                        ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, "0001", 1, true));
+            }
+        };
+    }
+
+    private void initComBackHomePageCountDownTimer() {
+        if (comBackHomePageCountDownTimer == null){
+            comBackHomePageCountDownTimer = new CountDownTimer(COM_BACK_HOME_PAGE_COUNT_DOWN_TIME + 1100, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
-                    String s = String.valueOf(millisUntilFinished / 1000) + "秒";
+                    String s = String.valueOf((millisUntilFinished / 1000) - 1) + "S";
                     tvCountDownTime.setText(s);
+                    String notice;
+                    if (LanguageUtil.isChinese()){
+                        notice = COMBACK_HOME_PAGE_NOTICE + s + "后将自动返回首页!";
+                    }else {
+                        notice = COMBACK_HOME_PAGE_NOTICE  + " After " + s + " will automatically return to the home page!";
+                    }
+                    tvRecycleNotice.setText(notice);
                 }
 
                 @Override
                 public void onFinish() {
-                    // 强制回收前置关门指令
-                    forceRecycleCountDownTimer.cancel();
+                    // 返回首页
+                    COMBACK_HOME_PAGE_NOTICE = "";
+                    comBackHomePageCountDownTimer.cancel();
                     tvCountDownTime.setVisibility(View.GONE);
                     llCountDownTime.setVisibility(View.INVISIBLE);
-                    EventBus.getDefault().post(new ActionMessageEvent(ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS,
-                            ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, "0001", 1, true));
+                    EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, null));
                 }
             };
         }
     }
 
-    private void resetTimer(CountDownTimer timer, Integer newTime){
-        if (newTime != null && newTime > 0){
-            tempTimer = newTime;
-        }
+    private void resetTimer(CountDownTimer timer){
+
         tvCountDownTime.setVisibility(View.VISIBLE);
         llCountDownTime.setVisibility(View.VISIBLE);
+
         timer.cancel();
         timer.start();
     }
@@ -406,16 +505,26 @@ public class RecycleFragment extends com.example.ori.jnidemo.base.Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onResume() {
+        super.onResume();
         if (!EventBus.getDefault().isRegistered(this)){
             EventBus.getDefault().register(this);
         }
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        EventBus.getDefault().unregister(this);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
-        EventBus.getDefault().unregister(this);
     }
 }

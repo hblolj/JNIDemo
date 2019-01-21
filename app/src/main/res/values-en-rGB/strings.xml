@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">JNIDemo</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="home">HomeFragment</string>
+    <string name="recycle">RecycleFragment</string>
+
+    <!-- Working Hard To Open The Door -->
+    <string name="opening_recycle_door">Is trying to open the door</string>
+
+    <string name="button_open_recycle_door">Opening The Door......</string>
+    <string name="button_open_recycle_door_faild">The door open failed</string>
+    <string name="button_close_recycle_door_faild">The door close failed</string>
+    <string name="button_close_recycle_door_exception">The recycling door failed to close. Please check if there are obstacles at the recycling door to block the door. Please try again after cleaning!</string>
+    <string name="button_recycle_complate">Delivery Completed</string>
+    <string name="button_come_back_home_page">Back To Home</string>
+
+    <!-- The bottle barcode detection fails, please take out the bottle from the delivery port within 60 seconds, otherwise it will be swallowed by the recycling machine! -->
+    <string name="barcode_validate_faild">Plastic bottle barcode scan failed, please remove the bottle from dropping mouth in 60 seconds, otherwise will be swallowed by recycling machine</string>
+
+    <string name="open_door_success">The door has been opened, please deliver......</string>
+    <string name="open_door_faild">The door open failed, please contact the administrator</string>
+    <string name="close_door_faild">The door close failed, please contact the administrator</string>
+
+    <string name="button_admin_model">Admin Model</string>
+    <string name="button_user_model">User Model</string>
+
+    <string name="customer_service_phone">maintainPhone : 400-677-1555</string>
+    <string name="machine_number">machineNumber : 05740011</string>
+
+    <string name="category_title">Please select recycle type to start</string>
+
+    <!-- Successful delivery, delivered items are as follows -->
+    <string name="delivery_complete">Delivery successful, items delivered as follows</string>
+    <string name="button_recycle_finish">End of delivery</string>
+    <string name="button_recycle_continue">Continue delivery</string>
+
+    <string name="button_open_admin_recycle_door">Open the administrator recycling door</string>
+    <string name="button_finish_admin_recycle">Complete administrator recycling</string>
+    <string name="button_open_user_recycle_door">Open user recycling door</string>
+    <string name="button_close_user_recycle_door">Close user recycle door</string>
+
+    <string name="brify_summary_notice">Can continue to deliver, only one bottle delivered at a time</string>
+</resources>

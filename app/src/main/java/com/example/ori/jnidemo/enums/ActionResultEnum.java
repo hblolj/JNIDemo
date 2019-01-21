@@ -24,6 +24,8 @@ public enum ActionResultEnum {
     PREFIX_WEIGH_SUCCESS(15, "开门前置称重成功"),
     SUFFIX_WEIGH_SUCCESS(16, "关门后置称重成功"),
     WEIGH_PREFIX_CLOSE_DOOR_SUCCESS(17, "称重前置关门成功"),
+    NORMAL_CLOSE_DOOR_EXCEPTION(18, "正常关门异常"),
+    PREFIX_NORMAL_CLOSE_DOOR_EXCEPTION(19, "强制回收前置关门异常"),
     ;
 
     private Integer resultCode;

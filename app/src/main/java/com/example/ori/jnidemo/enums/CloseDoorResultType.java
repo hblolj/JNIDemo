@@ -2,20 +2,21 @@ package com.example.ori.jnidemo.enums;
 
 /**
  * @author: hblolj
- * @date: 2019/1/3 16:19
- * @description:
+ * @date: 2019/1/15 15:42
+ * @description: 关门结果类型
  */
-public enum CloseDoorType {
-    NORMAL("AA", "正常关门操作"),
-    FORCE_RECYCLE_PREFIX("BB", "强制回收前置关门操作"),
-    WEIGH_PREFIX("CC", "称重前置回收关门操作"),
+public enum CloseDoorResultType {
+
+    SUCCESS("F8", "关门成功!"),
+    FAILD("F5", "关门失败!"),
+    EXCEPTION("F1", "关门检测到障碍物!重置为开门状态!"),
     ;
 
     private String typeId;
 
     private String typeName;
 
-    CloseDoorType(String typeId, String typeName) {
+    CloseDoorResultType(String typeId, String typeName) {
         this.typeId = typeId;
         this.typeName = typeName;
     }

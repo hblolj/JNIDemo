@@ -34,7 +34,7 @@
                 android:textSize="25sp"
                 android:textStyle="bold"
                 android:layout_marginLeft="30dp"
-                android:text="请选择回收类型开始投递"
+                android:text="@string/category_title"
                 android:layout_marginRight="30dp"
                 android:layout_width="300dp"
                 android:layout_height="100dp" />

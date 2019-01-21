@@ -7,7 +7,7 @@
     <TextView
         android:id="@+id/tv_category_name"
         android:text="金属"
-        android:textSize="30sp"
+        android:textSize="20sp"
         android:gravity="center"
         android:layout_width="0dp"
         android:layout_margin="10dp"
@@ -19,8 +19,8 @@
     <Button
         android:id="@+id/btn_open_door"
         android:gravity="center"
-        android:textSize="30sp"
-        android:text="开启管理员回收门"
+        android:textSize="20sp"
+        android:text="@string/button_open_admin_recycle_door"
         android:layout_margin="10dp"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintLeft_toRightOf="@id/tv_category_name"
@@ -31,11 +31,37 @@
     <Button
         android:id="@+id/btn_finish_recycle"
         android:gravity="center"
-        android:textSize="30sp"
-        android:text="完成管理员回收"
+        android:textSize="20sp"
+        android:text="@string/button_finish_admin_recycle"
+        android:layout_margin="10dp"
+        app:layout_constraintRight_toRightOf="@id/btn_open_user_door"
+        app:layout_constraintLeft_toRightOf="@id/btn_open_door"
+        app:layout_constraintHorizontal_weight="1"
+        android:layout_width="0dp"
+        android:layout_height="match_parent" />
+
+    <!-- 开启用户回收门 -->
+    <Button
+        android:id="@+id/btn_open_user_door"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:text="@string/button_open_user_recycle_door"
+        android:layout_margin="10dp"
+        app:layout_constraintRight_toRightOf="@id/btn_close_user_door"
+        app:layout_constraintLeft_toRightOf="@id/btn_finish_recycle"
+        app:layout_constraintHorizontal_weight="1"
+        android:layout_width="0dp"
+        android:layout_height="match_parent" />
+
+    <!-- 关闭用户回收门 -->
+    <Button
+        android:id="@+id/btn_close_user_door"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:text="@string/button_close_user_recycle_door"
         android:layout_margin="10dp"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintLeft_toRightOf="@id/btn_open_door"
+        app:layout_constraintLeft_toRightOf="@id/btn_open_user_door"
         app:layout_constraintHorizontal_weight="1"
         android:layout_width="0dp"
         android:layout_height="match_parent" />

@@ -30,7 +30,7 @@
             android:layout_marginLeft="20dp"
             android:textStyle="bold"
             android:textSize="25sp"
-            android:text="投递成功，已投递物品如下"
+            android:text="@string/delivery_complete"
             android:gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="40dp" />
@@ -50,7 +50,7 @@
         android:textSize="20sp"
         android:gravity="center"
         android:text="饮料瓶 1 个"
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="30dp" />
 
     <View
@@ -80,7 +80,7 @@
 
         <Button
             android:id="@+id/btn_finish_recycle"
-            android:text="结束投递"
+            android:text="@string/button_recycle_finish"
             android:background="@drawable/finish_btn"
             android:textSize="20sp"
             android:layout_width="300dp"
@@ -91,7 +91,7 @@
             android:layout_marginLeft="40dp"
             android:textSize="20sp"
             android:background="@drawable/continue_btn"
-            android:text="继续投递"
+            android:text="@string/button_recycle_continue"
             android:layout_width="300dp"
             android:layout_height="80dp" />
     </LinearLayout>

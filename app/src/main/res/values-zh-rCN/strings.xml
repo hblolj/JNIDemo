@@ -33,10 +33,5 @@
     <string name="button_recycle_finish">结束投递</string>
     <string name="button_recycle_continue">继续投递</string>
 
-    <string name="button_open_admin_recycle_door">开启管理员回收门</string>
-    <string name="button_finish_admin_recycle">完成管理员回收</string>
-    <string name="button_open_user_recycle_door">开启用户回收门</string>
-    <string name="button_close_user_recycle_door">关闭用户回收门</string>
-
     <string name="brify_summary_notice">还可继续投递，一次只能投递一个饮料瓶哦!</string>
 </resources>

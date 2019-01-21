@@ -7,7 +7,7 @@ import com.example.ori.jnidemo.bean.MessageEvent;
 import com.example.ori.jnidemo.bean.Order;
 import com.example.ori.jnidemo.bean.OrderValidate;
 import com.example.ori.jnidemo.constant.ComConstant;
-import com.example.ori.jnidemo.enums.CloseDoorType;
+import com.example.ori.jnidemo.enums.CloseDoorResultType;
 import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
 
 import org.greenrobot.eventbus.EventBus;
@@ -59,9 +59,9 @@ public class OrderHandleUtil {
 
     public static void handlerReceiveData(String receiveData, Handler myHandler){
 
-        Log.d(TAG, "收到的串口数据: " + receiveData);
+        Log.d(TAG, "----------------收到的串口数据: " + receiveData + "---------------------");
 
-        // 1. 判断是否是应答指令 waitOrder 中查询
+        // 1. 判断是否是应答指令
         OrderValidate replyValidate = SerialHelper.waitReplys.get(receiveData);
         if (replyValidate != null){
             SerialHelper.waitReplys.remove(receiveData);
@@ -69,13 +69,14 @@ public class OrderHandleUtil {
             return;
         }
 
-        // 2. 判断是否是执行结果 解析出 SourceAddress + ActionCode -> waitResult 中查询
+        // 校验指令合法性，抽取指令为对象
         Order receiveOrder = OrderAnalyzeUtil.analyzeOrder(receiveData);
         if (receiveOrder == null){
-            Log.d(TAG, "handlerReceiveData - 指令解析异常: " + receiveData);
+            Log.d(TAG, "指令解析异常: " + receiveData);
             return;
         }
 
+        // 2. 判断是否是执行结果 解析出 SourceAddress + ActionCode -> waitResult 中查询
         String rKey = receiveOrder.getSourceAddress() + receiveOrder.getActionCode();
         Order sendOrder = SerialHelper.waitResults.get(rKey);
         if (sendOrder != null){
@@ -85,7 +86,7 @@ public class OrderHandleUtil {
             return;
         }
 
-        // 3. 判断是否是监听信号 解析出 SourceAddress + ActionCode -> waitSignal 中查询
+        // 3. 判断是否是监听信号
         handleSignalOrder(receiveOrder);
     }
 
@@ -98,7 +99,7 @@ public class OrderHandleUtil {
 
         Integer replyOrderType = getReplyOrderType(replyOrder.getSourceAddress(), replyOrder.getActionCode());
         if (replyOrderType == null){
-            Log.d(TAG, "handleReplyOrder - 未知的应答指令: " + replyOrder.getOrderContent());
+            Log.d(TAG, "未知的应答指令: " + replyOrder.getOrderContent());
             return;
         }
 
@@ -109,7 +110,7 @@ public class OrderHandleUtil {
         }else if (CLOSE_DOOR_REPLY.equals(replyOrderType)){
             // 塑料瓶、金属、纸类回收 - 关门 - 应答未收到
             String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
-            EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT));
+            EventBus.getDefault().post(new MessageEvent(key, CloseDoorResultType.FAILD.getTypeId(), MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT));
         }else if (PLASTIC_BOTTLE_RECYCLE_SCAN_VALIDATE_REPLY.equals(replyOrderType)){
             // 扫码结果 - 应答未收到
             Log.d(TAG, "扫码结果反馈指令应答未收到!");
@@ -212,25 +213,10 @@ public class OrderHandleUtil {
             removeTask(RECYCLE_CLOSE_DOOR_VALIDATE_RESULT_DELAY_TASK, myHandler);
 
             String key = replyOrder.getSourceAddress() + replyOrder.getActionCode();
-            if ("FFFF".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "收到关门成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.NORMAL.getTypeId()));
-            }else if ("0000".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "收到关门失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.NORMAL.getTypeId()));
-            }else if ("EEEE".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "收到强制回收前置关门成功指令!");
-                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.FORCE_RECYCLE_PREFIX.getTypeId()));
-            }else if ("1111".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "收到强制回收前置关门失败指令!");
-                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.FORCE_RECYCLE_PREFIX.getTypeId()));
-            }else if ("DDDD".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "称重前置关门成功!");
-                EventBus.getDefault().post(new MessageEvent(key, true, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.WEIGH_PREFIX.getTypeId()));
-            }else if ("2222".equals(replyOrder.getParam().toUpperCase())){
-                Log.d(TAG, "称重前置关门失败!");
-                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, CloseDoorType.WEIGH_PREFIX.getTypeId()));
-            }
+            String sence = replyOrder.getParam().toUpperCase().substring(0, 2);
+            String result = replyOrder.getParam().toUpperCase().substring(2, 4);
+            EventBus.getDefault().post(new MessageEvent(key, result, MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT, sence));
+
         }else if (ComConstant.PLASTIC_BOTTLE_RECYCLE_IC_ADDRESS.equals(replyOrder.getSourceAddress()) &&
                 ComConstant.BAR_CODE_SCAN_VALIDATE_RESULT_ACTION_CODE.equals(replyOrder.getActionCode())){
             // 3. 扫码结果反馈结果
@@ -288,6 +274,7 @@ public class OrderHandleUtil {
         }
     }
 
+
     private static void resetTask(Runnable task, Handler handler){
         if (task != null){
             handler.removeCallbacks(task);
@@ -344,7 +331,7 @@ public class OrderHandleUtil {
                 // 收到关门指令应答后，计时 5 秒，如果还是没有收到关门结果，做关门失败处理！
                 String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
                 // 关门失败不需要分辨是正常关门还是强制回收前置关门
-                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
+                EventBus.getDefault().post(new MessageEvent(key, CloseDoorResultType.FAILD.getTypeId(), MessageEvent.MESSAGE_TYPE_CLOSE_DOOR_RESULT));
             }
         };
     }
@@ -358,7 +345,7 @@ public class OrderHandleUtil {
                 String source = replyOrder.getSourceAddress().toUpperCase();
                 String key = replyOrder.getSourceAddress() + CommonUtil.hexAdd(replyOrder.getActionCode(), 1);
 
-                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
+//                EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_OPEN_DOOR_RESULT));
                 EventBus.getDefault().post(new MessageEvent(key, false, MessageEvent.MESSAGE_TYPE_WEIGH_RESULT, source + param + "FFFF"));
             }
         };

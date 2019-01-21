@@ -101,6 +101,7 @@ public class BarCodeScanUtil {
     }
 
     public void consumeScanResult(){
+        // TODO: 2019/1/15 持久化记录回收成功的条码
         scanResult.remove(0);
     }
 

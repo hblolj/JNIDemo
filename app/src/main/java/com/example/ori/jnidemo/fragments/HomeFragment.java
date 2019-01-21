@@ -9,6 +9,8 @@ import com.example.ori.jnidemo.R;
 import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
 import com.example.ori.jnidemo.dapter.CategoryAdapter;
+import com.example.ori.jnidemo.enums.CategoryEnum;
+import com.example.ori.jnidemo.utils.LanguageUtil;
 import com.example.ori.jnidemo.utils.ToastHelper;
 
 import org.greenrobot.eventbus.EventBus;
@@ -48,8 +50,17 @@ public class HomeFragment extends com.example.ori.jnidemo.base.Fragment {
         gvCategory.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                ToastHelper.showShortMessage(getActivity(), items.get(position).getCategoryName());
-                EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, RecycleFragment.FRAGMENT_ID, items.get(position)));
+                CategoryItem item = items.get(position);
+                if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(item.getItemId())){
+                    EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, RecycleFragment.FRAGMENT_ID, items.get(position)));
+                }else {
+                    // 中英文适配
+                    if (LanguageUtil.isChinese()){
+                        ToastHelper.showLongMessage(getActivity(), item.getCategoryName() + "副箱尚未安装！请选择其他类型进行回收！");
+                    }else {
+                        ToastHelper.showLongMessage(getActivity(), item.getCategoryName() + "The sub-box has not been installed! Please choose another type for recycling!");
+                    }
+                }
             }
         });
 

@@ -9,22 +9,24 @@ import java.math.BigDecimal;
  */
 public enum CategoryEnum {
 
-    METAL_REGENERANT(1, "金属", new BigDecimal("0.6"), "0.60元/公斤", "公斤"),
-    PLASTIC_REGENERANT(2, "塑料", new BigDecimal("0.7"), "0.70元/公斤", "公斤"),
-    TEXTILE_REGENERANT(3, "纺织物", new BigDecimal("0.2"), "0.20元/公斤", "公斤"),
-    PLASTIC_BOTTLE_REGENERANT(4, "饮料瓶", new BigDecimal("0.04"), "0.04元/个", "个"),
-    PAPER_REGENERANT(5, "纸类", new BigDecimal("0.7"), "0.70元/公斤", "公斤"),
-    GLASS_REGENERANT(6, "玻璃", new BigDecimal("0"), ""),
-    HARMFUL_WASTE(7, "有害垃圾", new BigDecimal("0"), ""),
+    METAL_REGENERANT(1, "金属", "Metal", new BigDecimal("0.6"), "/Kg", "元/公斤"),
+    PLASTIC_REGENERANT(2, "塑料", "Plastic", new BigDecimal("0.7"), "/Kg", "元/公斤"),
+    TEXTILE_REGENERANT(3, "纺织物", "Textiles", new BigDecimal("0.2"), "/Kg", "元/公斤"),
+    PLASTIC_BOTTLE_REGENERANT(4, "饮料瓶", "Bottle", new BigDecimal("0.04"), "/PC", "元/个"),
+    PAPER_REGENERANT(5, "纸类", "Paper", new BigDecimal("0.7"), "/Kg", "元/公斤"),
+    GLASS_REGENERANT(6, "玻璃", "Glass", new BigDecimal("0"), "/Kg", "元/公斤"),
+    HARMFUL_WASTE(7, "有害垃圾", "Harmful Garbage", new BigDecimal("0"), "/Kg", "元/公斤"),
     ;
 
     private Integer id;
 
     private String name;
 
+    private String enName;
+
     private BigDecimal unitPrice;
 
-    private String description;
+    private String enUnit;
 
     private String unit;
 
@@ -36,24 +38,12 @@ public enum CategoryEnum {
         this.name = name;
     }
 
-    CategoryEnum(Integer id, String name, String description) {
+    CategoryEnum(Integer id, String name, String enName, BigDecimal unitPrice, String enUnit, String unit) {
         this.id = id;
         this.name = name;
-        this.description = description;
-    }
-
-    CategoryEnum(Integer id, String name, BigDecimal unitPrice, String description) {
-        this.id = id;
-        this.name = name;
+        this.enName = enName;
         this.unitPrice = unitPrice;
-        this.description = description;
-    }
-
-    CategoryEnum(Integer id, String name, BigDecimal unitPrice, String description, String unit) {
-        this.id = id;
-        this.name = name;
-        this.unitPrice = unitPrice;
-        this.description = description;
+        this.enUnit = enUnit;
         this.unit = unit;
     }
 
@@ -69,11 +59,15 @@ public enum CategoryEnum {
         return unitPrice;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
     public String getUnit() {
         return unit;
+    }
+
+    public String getEnName() {
+        return enName;
+    }
+
+    public String getEnUnit() {
+        return enUnit;
     }
 }

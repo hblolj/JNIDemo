@@ -2,6 +2,7 @@ package com.example.ori.jnidemo.utils.serial_port;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import com.example.ori.jnidemo.bean.ComBean;
 import com.example.ori.jnidemo.bean.MessageEvent;
@@ -346,6 +347,7 @@ public class SerialHelper{
 	public void openComPort(){
 		try {
 			open(0, 8, 1);
+			Log.d(TAG, "连接串口" + this.sPort + "成功!");
 		} catch (SecurityException e) {
 			EventBus.getDefault().post(new MessageEvent("打开串口失败:没有串口读/写权限!", MessageEvent.MESSAGE_TYPE_NOTICE));
 		} catch (IOException e) {

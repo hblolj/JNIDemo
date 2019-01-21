@@ -13,6 +13,7 @@ import com.example.ori.jnidemo.base.Fragment;
 import com.example.ori.jnidemo.bean.CategoryItem;
 import com.example.ori.jnidemo.bean.FragmentMessageEvent;
 import com.example.ori.jnidemo.enums.CategoryEnum;
+import com.example.ori.jnidemo.utils.LanguageUtil;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -66,27 +67,35 @@ public class AcountFragment extends Fragment {
         String s;
         BigDecimal t;
 
+        String u = mCurrentItem.getUnit();
+        String unit = u.substring(u.indexOf("/") + 1);
         if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(mCurrentItem.getItemId())){
             // 瓶子
-            s = mCurrentItem.getCategoryName() + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + mCurrentItem.getUnit();
+            s = mCurrentItem.getCategoryName() + " " + HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM + " " + unit;
             t = mCurrentItem.getdPrice().multiply(new BigDecimal(HomeActivity.CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM));
         }else {
             // 金属、纸类 做一下减法
             BigDecimal validWeigh = HomeActivity.getValidWeigh(mCurrentItem);
-            s = mCurrentItem.getCategoryName() + validWeigh + mCurrentItem.getUnit();
+            s = mCurrentItem.getCategoryName() + " " + validWeigh + " " + unit;
             t = mCurrentItem.getdPrice().multiply(validWeigh);
         }
         tvList.setText(s);
 
-        String sm = "获得环保金" + t + "元";
+        // 中英文适配
+        String sm;
+        if (LanguageUtil.isChinese()){
+            sm = "获得环保金 " + t + " 元";
+        }else {
+            sm = "Get Environmental Protection" + " $" + t;
+        }
         tvMoney.setText(sm);
         tvCountDownTime.setVisibility(View.VISIBLE);
         llCountDownTime.setVisibility(View.VISIBLE);
 
-        countDownTimer = new CountDownTimer(60000, 1000) {
+        countDownTimer = new CountDownTimer(60000 + 1100, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                String s = String.valueOf(millisUntilFinished / 1000) + "秒";
+                String s = String.valueOf((millisUntilFinished / 1000) - 1) + " S";
                 tvCountDownTime.setText(s);
             }
 

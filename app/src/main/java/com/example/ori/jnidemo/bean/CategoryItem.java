@@ -1,6 +1,7 @@
 package com.example.ori.jnidemo.bean;
 
 import com.example.ori.jnidemo.enums.CategoryEnum;
+import com.example.ori.jnidemo.utils.LanguageUtil;
 
 import java.math.BigDecimal;
 
@@ -29,11 +30,20 @@ public class CategoryItem {
     }
 
     public CategoryItem(CategoryEnum categoryEnum) {
+        // 按中英文环境适配赋值
+        if (LanguageUtil.isChinese()){
+            // 中文
+            this.categoryName = categoryEnum.getName();
+            this.unit = categoryEnum.getUnit();
+            this.unitPrice = categoryEnum.getUnitPrice() + this.unit;
+        }else {
+            // 英文
+            this.categoryName = categoryEnum.getEnName();
+            this.unit = categoryEnum.getEnUnit();
+            this.unitPrice =  "$" + categoryEnum.getUnitPrice() + this.unit;
+        }
         this.itemId = categoryEnum.getId();
-        this.categoryName = categoryEnum.getName();
-        this.unitPrice = categoryEnum.getDescription();
         this.dPrice = categoryEnum.getUnitPrice();
-        this.unit = categoryEnum.getUnit();
     }
 
     public CategoryItem(String categoryName, String unitPrice) {

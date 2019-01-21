@@ -23,7 +23,7 @@
             android:layout_height="90dp" />
 
         <LinearLayout
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:gravity="center_vertical"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -43,7 +43,7 @@
                     android:layout_height="25dp" />
 
                 <TextView
-                    android:text="客服电话 : 400-677-1555"
+                    android:text="@string/customer_service_phone"
                     android:textSize="20sp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
@@ -51,6 +51,7 @@
 
             <LinearLayout
                 android:layout_marginTop="15dp"
+                android:layout_marginBottom="5dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
@@ -63,7 +64,7 @@
                     android:layout_height="25dp" />
 
                 <TextView
-                    android:text="机器编号 : 05740011"
+                    android:text="@string/machine_number"
                     android:textSize="20sp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
@@ -83,8 +84,8 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="10dp"
                 android:layout_marginRight="50dp"
-                android:textSize="30sp"
-                android:text="我是管理员"
+                android:textSize="20sp"
+                android:text="@string/button_admin_model"
                 android:background="@drawable/admin_btn"
                 android:layout_width="200dp"
                 android:layout_height="80dp" />

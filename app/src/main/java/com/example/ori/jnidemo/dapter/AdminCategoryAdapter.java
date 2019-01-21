@@ -71,6 +71,21 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
 //                EventBus.getDefault().post(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, null));
             }
         });
+        holder.btnOpenUserDoor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String targetSource = getAddressCodeByCategoryItemId(item.getItemId());
+                EventBus.getDefault().post(new ActionMessageEvent(targetSource, ComConstant.OPEN_USER_RECYCLE_ACTION_CODE, null, 1, false));
+            }
+        });
+
+        holder.btnCloseUserDoor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String targetSource = getAddressCodeByCategoryItemId(item.getItemId());
+                EventBus.getDefault().post(new ActionMessageEvent(targetSource, ComConstant.CLOSE_USER_RECYCLE_ACTION_CODE, null, 1, false));
+            }
+        });
     }
 
     @Override
@@ -83,12 +98,16 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
         TextView tvCategory;
         Button btnOpenDoor;
         Button btnFinishRecycler;
+        Button btnOpenUserDoor;
+        Button btnCloseUserDoor;
 
         public ViewHolder(View itemView) {
             super(itemView);
             tvCategory = (TextView) itemView.findViewById(R.id.tv_category_name);
             btnOpenDoor = (Button) itemView.findViewById(R.id.btn_open_door);
             btnFinishRecycler = (Button) itemView.findViewById(R.id.btn_finish_recycle);
+            btnOpenUserDoor = (Button) itemView.findViewById(R.id.btn_open_user_door);
+            btnCloseUserDoor = (Button) itemView.findViewById(R.id.btn_close_user_door);
         }
     }
 }

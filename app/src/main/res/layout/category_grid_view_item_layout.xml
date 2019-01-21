@@ -24,8 +24,9 @@
         android:textSize="20sp"
         android:gravity="center"
         android:textStyle="bold"
+        android:maxLines="2"
         android:text="金属"
-        android:layout_width="100dp"
+        android:layout_width="match_parent"
         android:layout_height="30dp" />
 
     <TextView

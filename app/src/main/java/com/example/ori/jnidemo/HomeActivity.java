@@ -1,13 +1,11 @@
 package com.example.ori.jnidemo;
 
 import android.content.pm.ActivityInfo;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
@@ -36,7 +34,6 @@ import com.example.ori.jnidemo.utils.StringUtil;
 import com.example.ori.jnidemo.utils.ToastHelper;
 import com.example.ori.jnidemo.utils.barcode.BarCodeScanUtil;
 import com.example.ori.jnidemo.utils.serial_port.SerialHelper;
-import com.ys.myapi.MyManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -45,6 +42,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import android_serialport_api.SerialPortFinder;
 import butterknife.BindView;
@@ -79,8 +77,6 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
 
     private SerialHelper comHelper;
 
-    private MyManager myManager;
-
     @BindView(R.id.btn_admin)
     Button btnAdmin;
 
@@ -107,7 +103,7 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
             }
 
             // 3. 如果没有超过重试次数，且没有收到响应，重新发送指令
-            // 重发的指令，也会生成一个带应答的标记存储到map中，因为key 相同，会覆盖之前的key，计数 + 1
+            // 重发的指令，也会生成一个带应答的标记存储到map中，因为 key 相同，会覆盖之前的key，计数 + 1
             OrderUtils.retrySendOrder(comHelper, orderValidate, myHandler);
             return false;
         }
@@ -131,13 +127,6 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
 
         super.initWidget();
 
-//        if (myManager == null){
-//            myManager = MyManager.getInstance(this);
-//            Intent intent = new Intent(this, WatchDogService.class);
-//            startService(intent);
-//        }
-
-
         btnAdmin.setTag(ADMIN_MODEL);
 
         // 初始化切换到 HomeFragment 开始、投递结束
@@ -155,7 +144,13 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     @Override
     protected void initData() {
         super.initData();
-
+        // 中英文适配
+        String language1= getResources().getConfiguration().locale.getCountry();
+        String language2 = Locale.getDefault().getLanguage();
+        String language3 = Locale.getDefault().toString();
+        Log.d(TAG, "当前语言1: " + language1); // GB     CN
+        Log.d(TAG, "当前语言2: " + language2); // en     zh
+        Log.d(TAG, "当前语言3: " + language3); // en_GB  zh_CN
         if (items.size() == 0){
             items.add(new CategoryItem(CategoryEnum.METAL_REGENERANT));
 //        items.add(new CategoryItem(CategoryEnum.PLASTIC_REGENERANT));
@@ -168,8 +163,9 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
 
         for (int id : InputDevice.getDeviceIds()) {
             String name = InputDevice.getDevice(id).getName().trim();
-            Log.d(TAG, "DeviceNames: " + name);
+            Log.d(TAG, "二维码扫描设备: " + name);
         }
+
         // 初始化点击
         onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, items));
         reConnectionSerial();
@@ -178,11 +174,11 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     @OnClick(R.id.btn_admin)
     public void go2AdminPager(){
         if (ADMIN_MODEL.equals(btnAdmin.getTag())){
-            btnAdmin.setText("我是用户");
+            btnAdmin.setText(R.string.button_user_model);
             btnAdmin.setTag(USER_MODEL);
             onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, AdminFragment.FRAGMENT_ID, items));
         }else if (USER_MODEL.equals(btnAdmin.getTag())){
-            btnAdmin.setText("我是管理员");
+            btnAdmin.setText(R.string.button_admin_model);
             btnAdmin.setTag(ADMIN_MODEL);
             onFragmentMessageEvent(new FragmentMessageEvent(FragmentMessageEvent.SWITCH_FRAGMENT, HomeFragment.FRAGMENT_ID, items));
         }
@@ -237,7 +233,7 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
             // IC 请求扫码结果 校验扫码结果
             BizHandleUtil.handleScanRequest(event, comHelper, myHandler);
         }else if (MessageEvent.MESSAGE_TYPE_IC_NOT_RECEIVE_SCAN_RESULT.equals(event.getType())){
-            // IC 请求扫码结果后，规定时间内未收到扫码结果，做扫码失败相同处理
+            // IC 请求扫码结果后，硬件处理中心规定时间内未收到扫码结果，做扫码失败相同处理
             EventBus.getDefault().post(ActionResultEnum.PLASTIC_BOTTLE_SCAN_RESULT_VALIDATE_FAILD);
         }else if (MessageEvent.MESSAGE_TYPE_RECYCLE_BRIEF_SUMMARY.equals(event.getType())){
             // 单次回收结束
@@ -247,6 +243,10 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
             SerialHelper.waitResults.remove(event.getKey());
             // 成功与失败分别走单次回收结束流程，参数不一致
             Boolean result = (Boolean) event.getMessage();
+            if (result){
+                // 强制回收成功，塑料瓶总数 + 1
+                TOTAL_PLASTIC_BOTTLE_NUM++;
+            }
             EventBus.getDefault().post(result ? ActionResultEnum.FORCE_RECYCLE_SUCCESS : ActionResultEnum.FORCE_RECYCLE_FAILD);
         }else if (MessageEvent.MESSAGE_TYPE_WEIGH_RESULT.equals(event.getType())){
             // 称重结果
@@ -273,8 +273,14 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
      * 串口重连
      */
     public void reConnectionSerial(){
+
         String[] devices = new SerialPortFinder().getAllDevices();
         String result = null;
+
+        for (String device : devices) {
+            System.out.println("串口名称: " + device);
+        }
+
         for (String d : devices) {
             if (d.contains("USB")){
                 d = d.replace(" ", "").trim();
@@ -282,12 +288,13 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
                 result = d;
                 break;
             }
-            System.out.println("串口名称: " + d);
         }
+
         if (StringUtil.isEmpty(result)){
             ToastHelper.showShortMessage(this, "没有扫描到合法串口!");
             return;
         }
+
         initPort(result);
     }
 
@@ -343,20 +350,21 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         //判断是否有焦点
-        if(hasFocus && Build.VERSION.SDK_INT >= 19){
-            View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            |View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            |View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            |View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            |View.SYSTEM_UI_FLAG_FULLSCREEN
-                            |View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            );
-        }
+//        if(hasFocus && Build.VERSION.SDK_INT >= 19){
+//            View decorView = getWindow().getDecorView();
+//            decorView.setSystemUiVisibility(
+//                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+//                            |View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+//                            |View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+//                            |View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+//                            |View.SYSTEM_UI_FLAG_FULLSCREEN
+//                            |View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+//            );
+//        }
     }
 
     /**
+     * 称重结果存储
      * @param sourceAddress 地址 -> 回收物类型
      * @param type 称重类型，开门前置回收还是关门后置回收
      * @param w 重量
@@ -382,7 +390,13 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         }
     }
 
+    /**
+     * 按类别获取有效的当前重量
+     * @param categoryItem
+     * @return
+     */
     public static BigDecimal getValidWeigh(CategoryItem categoryItem){
+        // TODO: 2019/1/15 做持久化存储
         if (CategoryEnum.METAL_REGENERANT.getId().equals(categoryItem.getItemId())){
             // 计算有效金属重量
             Log.d(TAG, "开门前金属重量: " + PREFIX_TOTAL_METAL_WEIGH + " 开门后金属重量: " + SUFIX_TOTAL_METAL_WEIGH);
@@ -399,16 +413,22 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
         return new BigDecimal("0");
     }
 
+    /**
+     * 按类别获取当前重量描述
+     * @param item
+     * @return
+     */
     public static String getDataByCategoryItem(CategoryItem item){
+        String unit = item.getUnit().substring(item.getUnit().indexOf("/") + 1);
         if (CategoryEnum.METAL_REGENERANT.getId().equals(item.getItemId())){
             // 金属
-            return HomeActivity.TOTAL_METAL_WEIGH + " " + item.getUnit();
+            return HomeActivity.TOTAL_METAL_WEIGH + " " + unit;
         }else if (CategoryEnum.PAPER_REGENERANT.getId().equals(item.getItemId())){
             // 纸类
-            return HomeActivity.TOTAL_PAPER_WEIGH + " " + item.getUnit();
+            return HomeActivity.TOTAL_PAPER_WEIGH + " " + unit;
         }else if (CategoryEnum.PLASTIC_BOTTLE_REGENERANT.getId().equals(item.getItemId())){
             // 塑料瓶
-            return TOTAL_PLASTIC_BOTTLE_NUM + " " + item.getUnit();
+            return TOTAL_PLASTIC_BOTTLE_NUM + " " + unit;
         }
         return "";
     }
@@ -418,6 +438,7 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
      * @param item
      */
     public static void cleanDataByCategoryItem(CategoryItem item){
+        // TODO: 2019/1/15 持久化清除
         if (CategoryEnum.METAL_REGENERANT.getId().equals(item.getItemId())){
             // 金属
             TOTAL_METAL_WEIGH = new BigDecimal("0");
@@ -431,4 +452,5 @@ public class HomeActivity extends Activity implements NavHelper.OnTabChangedList
             CURRENT_RECYCLE_PLASTIC_BOTTLE_NUM = 0;
         }
     }
+
 }

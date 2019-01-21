@@ -56,7 +56,6 @@ public class ByteUtil {
                 String crc = r.substring(r.length() - 4);
                 String noCrcContent = r.substring(0, r.length() - 4);
                 result = CRCUtils.validateOrderCrc(noCrcContent, crc);
-                Log.d(TAG, "noCrcContent: " + noCrcContent + " crc: " + crc);
             }
             temp = new byte[512];
             tLen = 0;
